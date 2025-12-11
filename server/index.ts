@@ -1,7 +1,14 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+
+// Debug: Check if environment variables are loaded
+console.log("Environment variables loaded:");
+console.log("- ANTHROPIC_API_KEY exists:", !!process.env.ANTHROPIC_API_KEY);
+console.log("- API Key length:", process.env.ANTHROPIC_API_KEY?.length || 0);
+console.log("- First 20 chars:", process.env.ANTHROPIC_API_KEY?.substring(0, 20) || "not found");
 
 const app = express();
 const httpServer = createServer(app);
@@ -85,14 +92,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const host = process.env.HOST || "localhost";
+  httpServer.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
+  });
 })();
