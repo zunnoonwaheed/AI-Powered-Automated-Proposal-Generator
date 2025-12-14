@@ -10,10 +10,13 @@ import {
   FileCheck,
   Upload,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LimitedInput } from "@/components/ui/limited-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -52,10 +55,10 @@ export default function Home() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
 
-  const handleAnalyze = async (text: string) => {
+  const handleAnalyze = async (text: string, strategicQuestions: any) => {
     setIsAnalyzing(true);
     try {
-      const response = await apiRequest("POST", "/api/analyze", { text });
+      const response = await apiRequest("POST", "/api/analyze", { text, strategicQuestions });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -90,6 +93,46 @@ export default function Home() {
                   period: t.period,
                   title: t.title,
                   description: t.description,
+                })),
+              };
+            }
+            if (section.type === "pricing") {
+              const updatedSection: any = { ...section };
+
+              // Update termItems if available
+              if (analysis.suggestedTerms?.length > 0) {
+                updatedSection.termItems = analysis.suggestedTerms.map((t: any, i: number) => ({
+                  id: `term-${i}`,
+                  title: t.title,
+                  content: t.content,
+                }));
+              }
+
+              // Update pricingTableRows if available
+              if (analysis.pricingTableRows?.length > 0) {
+                updatedSection.pricingTableRows = analysis.pricingTableRows.map((row: any, i: number) => ({
+                  id: `price-row-${i}`,
+                  service: row.service,
+                  description: row.description,
+                  investment: row.investment,
+                }));
+                updatedSection.paymentTerms = "70% payment should be upfront and 30% on completion of project";
+              }
+
+              // Update totalAmount
+              if (analysis.totalAmount) {
+                updatedSection.totalAmount = analysis.totalAmount;
+              }
+
+              return updatedSection;
+            }
+            if (section.type === "next-steps" && analysis.nextStepItems?.length > 0) {
+              return {
+                ...section,
+                nextStepItems: analysis.nextStepItems.map((step: any, i: number) => ({
+                  id: `step-${i}`,
+                  step: step.step,
+                  description: step.description,
                 })),
               };
             }
@@ -193,6 +236,7 @@ export default function Home() {
     }));
   }, []);
 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
@@ -282,25 +326,23 @@ export default function Home() {
                   <CardDescription>Set the basic information for your proposal</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Proposal Title</label>
-                    <Input
-                      value={proposal.title}
-                      onChange={(e) => setProposal(prev => ({ ...prev, title: e.target.value }))}
-                      className="text-lg"
-                      placeholder="e.g., Website Redesign Proposal"
-                      data-testid="input-proposal-title"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Client Name</label>
-                    <Input
-                      value={proposal.clientName}
-                      onChange={(e) => setProposal(prev => ({ ...prev, clientName: e.target.value }))}
-                      placeholder="e.g., Acme Corporation"
-                      data-testid="input-client-name"
-                    />
-                  </div>
+                  <LimitedInput
+                    label="Proposal Title"
+                    value={proposal.title}
+                    onChange={(e) => setProposal(prev => ({ ...prev, title: e.target.value }))}
+                    className="text-lg"
+                    placeholder="e.g., Website Redesign Proposal"
+                    maxLength={100}
+                    data-testid="input-proposal-title"
+                  />
+                  <LimitedInput
+                    label="Client Name"
+                    value={proposal.clientName}
+                    onChange={(e) => setProposal(prev => ({ ...prev, clientName: e.target.value }))}
+                    placeholder="e.g., Acme Corporation"
+                    maxLength={50}
+                    data-testid="input-client-name"
+                  />
                 </CardContent>
               </Card>
 

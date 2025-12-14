@@ -74,6 +74,16 @@ export const termItemSchema = z.object({
 
 export type TermItem = z.infer<typeof termItemSchema>;
 
+// Pricing Table Row
+export const pricingTableRowSchema = z.object({
+  id: z.string(),
+  service: z.string(),
+  description: z.string(),
+  investment: z.string(),
+});
+
+export type PricingTableRow = z.infer<typeof pricingTableRowSchema>;
+
 // Proposal Section
 export const proposalSectionSchema = z.object({
   id: z.string(),
@@ -85,10 +95,21 @@ export const proposalSectionSchema = z.object({
   timelineItems: z.array(timelineItemSchema).optional(),
   deliverableItems: z.array(deliverableItemSchema).optional(),
   pricingItems: z.array(pricingItemSchema).optional(),
+  pricingTableRows: z.array(pricingTableRowSchema).optional(),
+  tableHeaders: z.object({
+    service: z.string(),
+    description: z.string(),
+    investment: z.string(),
+  }).optional(),
   featureItems: z.array(featureItemSchema).optional(),
   nextStepItems: z.array(nextStepItemSchema).optional(),
   termItems: z.array(termItemSchema).optional(),
   totalAmount: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  imageUrl: z.string().optional(),
+  useCircularLogo: z.boolean().optional(),
+  companyName: z.string().optional(),
+  centerText: z.string().optional(),
   contactName: z.string().optional(),
   contactTitle: z.string().optional(),
   contactPhone: z.string().optional(),
@@ -103,7 +124,8 @@ export const designSettingsSchema = z.object({
   primaryColor: z.string().default("#0d4f4f"),
   secondaryColor: z.string().default("#1a1a2e"),
   accentColor: z.string().default("#3498db"),
-  logoUrl: z.string().optional(),
+  logoUrl: z.string().optional(), // Company logo (Kayi Digital - top LEFT)
+  clientLogoUrl: z.string().optional(), // Client logo (top RIGHT)
   companyName: z.string().default("Your Company"),
   headerStyle: z.enum(["gradient", "solid", "minimal"]).default("gradient"),
   fontFamily: z.enum(["inter", "poppins", "outfit"]).default("poppins"),
@@ -140,13 +162,41 @@ export const aiAnalysisResultSchema = z.object({
   })),
   suggestedApproach: z.string(),
   keyRequirements: z.array(z.string()),
+  suggestedTerms: z.array(z.object({
+    title: z.string(),
+    content: z.string(),
+  })).optional(),
+  totalAmount: z.string().optional(),
+  pricingTableRows: z.array(z.object({
+    service: z.string(),
+    description: z.string(),
+    investment: z.string(),
+  })).optional(),
+  nextStepItems: z.array(z.object({
+    step: z.string(),
+    description: z.string(),
+  })).optional(),
 });
 
 export type AIAnalysisResult = z.infer<typeof aiAnalysisResultSchema>;
 
+// Strategic Questions for better AI analysis
+export const strategicQuestionsSchema = z.object({
+  projectGoal: z.string().optional(),
+  keyDeliverables: z.string().optional(),
+  budget: z.string().optional(),
+  timeline: z.string().optional(),
+  targetAudience: z.string().optional(),
+  successCriteria: z.string().optional(),
+  constraints: z.string().optional(),
+});
+
+export type StrategicQuestions = z.infer<typeof strategicQuestionsSchema>;
+
 // API Request/Response types
 export const analyzeRequirementsSchema = z.object({
   text: z.string().min(1),
+  strategicQuestions: strategicQuestionsSchema.optional(),
 });
 
 export type AnalyzeRequirementsRequest = z.infer<typeof analyzeRequirementsSchema>;

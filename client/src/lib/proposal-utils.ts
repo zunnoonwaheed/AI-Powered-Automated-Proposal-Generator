@@ -81,6 +81,9 @@ export function createSection(type: ProposalSection["type"], title: string, cont
     case "why-choose-us":
       return {
         ...baseSection,
+        useCircularLogo: true,
+        companyName: "KAYI DIGITAL",
+        centerText: "WHY CHOOSE",
         featureItems: [
           {
             id: nanoid(),
@@ -111,50 +114,72 @@ export function createSection(type: ProposalSection["type"], title: string, cont
     case "pricing":
       return {
         ...baseSection,
-        title: "Terms & Conditions",
-        termItems: [
+        title: "Investment & Pricing",
+        pricingTableRows: [
           {
             id: nanoid(),
-            title: "Investment & Payment",
-            content: "Total Month 1: Rs. 115,000\n• Rs. 72,500 due upon contract signing\n• Rs. 42,500 due December 20th, 2025",
+            service: "Brand Strategy & Research",
+            description: "Market analysis, competitor research, brand positioning document",
+            investment: "Included",
           },
           {
             id: nanoid(),
-            title: "Scope & Timeline",
-            content: "This agreement covers all deliverables outlined. The timeline depends on client approvals within 24 hours at each stage.",
+            service: "Visual Identity Design",
+            description: "Logo design, color palette, typography, brand guidelines",
+            investment: "Included",
           },
           {
             id: nanoid(),
-            title: "Revisions",
-            content: "• Brand identity: 2 rounds of revisions\n• Content pieces: 2 rounds per piece\n• Additional revisions at hourly rate",
+            service: "Content Creation",
+            description: "12 Instagram posts, 4 Reels, 4 Stories with professional editing",
+            investment: "Included",
+          },
+          {
+            id: nanoid(),
+            service: "Product Photography",
+            description: "Professional product shoot with 3 setups and editing",
+            investment: "Included",
+          },
+          {
+            id: nanoid(),
+            service: "Strategy & Planning",
+            description: "Content calendar, hashtag strategy, engagement plan",
+            investment: "Included",
+          },
+          {
+            id: nanoid(),
+            service: "Total Investment",
+            description: "Complete package - Month 1",
+            investment: "Rs. 115,000",
           },
         ],
+        paymentTerms: "70% payment should be upfront and 30% on completion of project",
         totalAmount: "Rs. 115,000",
       };
     case "next-steps":
       return {
         ...baseSection,
         nextStepItems: [
-          { id: nanoid(), step: "Step 1", description: "Sign agreement and process the initial payment" },
-          { id: nanoid(), step: "Step 2", description: "Complete onboarding form within 24 hours" },
-          { id: nanoid(), step: "Step 3", description: "Brand positioning review (Days 3-4)" },
-          { id: nanoid(), step: "Step 4", description: "Product photography coordination (Days 5-7)" },
-          { id: nanoid(), step: "Step 5", description: "Brand identity approval meeting (Days 8-10)" },
+          { id: nanoid(), step: "Discovery Call", description: "Schedule your kickoff call to discuss project vision, goals, and success metrics with our team" },
+          { id: nanoid(), step: "Review Proposal", description: "Review and approve the proposal, timeline, and deliverables - we'll address any questions" },
+          { id: nanoid(), step: "Sign Contract", description: "Sign the agreement and process 50% initial payment to secure your project start date" },
+          { id: nanoid(), step: "Start Project", description: "Begin execution with dedicated team assignment, project brief finalization, and timeline confirmation" },
+          { id: nanoid(), step: "Launch Ready", description: "Final delivery, testing, training, and go-live support to ensure seamless implementation" },
         ],
         items: [
-          "Timely approvals within 24 hours to maintain timeline",
-          "Product samples for photography",
-          "Account credentials or collaboration to create account",
-          "Prompt responses during research phase",
+          "Quick decision-making to keep project momentum",
+          "Access to necessary resources and brand materials",
+          "Timely feedback and approvals within agreed timeframes",
+          "Open communication channel with project team",
         ],
       };
     case "contact":
       return {
         ...baseSection,
-        contactName: "Your Name",
+        contactName: "Kayi Digital Team",
         contactTitle: "Business Development Executive",
-        contactPhone: "+1 234 567 8900",
-        contactEmail: "hello@yourcompany.com",
+        contactPhone: "+92 309 0613822",
+        contactEmail: "hello@kayi.digital",
         closingMessage: "LOOKING FORWARD TO WORKING TOGETHER",
       };
     default:
@@ -168,7 +193,7 @@ export function createDefaultDesignSettings(): DesignSettings {
     secondaryColor: "#1a1a2e",
     accentColor: "#3498db",
     logoUrl: undefined,
-    companyName: "Your Company",
+    companyName: "Kayi Digital",
     headerStyle: "gradient",
     fontFamily: "poppins",
   };

@@ -3,11 +3,14 @@ import { Upload, FileText, Sparkles, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { StrategicQuestions } from "@shared/schema";
 
 interface UploadZoneProps {
-  onAnalyze: (text: string) => void;
+  onAnalyze: (text: string, questions: StrategicQuestions) => void;
   isAnalyzing: boolean;
 }
 
@@ -15,6 +18,15 @@ export function UploadZone({ onAnalyze, isAnalyzing }: UploadZoneProps) {
   const [dragActive, setDragActive] = useState(false);
   const [text, setText] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [questions, setQuestions] = useState<StrategicQuestions>({
+    projectGoal: "",
+    keyDeliverables: "",
+    budget: "",
+    timeline: "",
+    targetAudience: "",
+    successCriteria: "",
+    constraints: "",
+  });
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -55,8 +67,12 @@ export function UploadZone({ onAnalyze, isAnalyzing }: UploadZoneProps) {
 
   const handleAnalyze = () => {
     if (text.trim()) {
-      onAnalyze(text);
+      onAnalyze(text, questions);
     }
+  };
+
+  const updateQuestion = (key: keyof StrategicQuestions, value: string) => {
+    setQuestions(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -138,6 +154,102 @@ export function UploadZone({ onAnalyze, isAnalyzing }: UploadZoneProps) {
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="mt-6 p-4 border rounded-lg bg-muted/30">
+          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Strategic Questions (Help AI understand better)
+          </h4>
+          <p className="text-xs text-muted-foreground mb-4">
+            These questions help AI generate more accurate and tailored proposal content
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="projectGoal" className="text-xs font-medium">
+                1. What is the main project goal/objective?
+              </Label>
+              <Input
+                id="projectGoal"
+                placeholder="e.g., Increase online sales by 50%, modernize legacy system"
+                value={questions.projectGoal}
+                onChange={(e) => updateQuestion("projectGoal", e.target.value)}
+                data-testid="input-project-goal"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="keyDeliverables" className="text-xs font-medium">
+                2. What are the key deliverables you expect?
+              </Label>
+              <Input
+                id="keyDeliverables"
+                placeholder="e.g., Mobile app, web dashboard, API integration, documentation"
+                value={questions.keyDeliverables}
+                onChange={(e) => updateQuestion("keyDeliverables", e.target.value)}
+                data-testid="input-key-deliverables"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="budget" className="text-xs font-medium">
+                3. What is your budget range?
+              </Label>
+              <Input
+                id="budget"
+                placeholder="e.g., $15,000 - $25,000, or flexible based on scope"
+                value={questions.budget}
+                onChange={(e) => updateQuestion("budget", e.target.value)}
+                data-testid="input-budget"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="timeline" className="text-xs font-medium">
+                4. What is your desired timeline/deadline?
+              </Label>
+              <Input
+                id="timeline"
+                placeholder="e.g., 8-10 weeks, must launch by Q2 2024"
+                value={questions.timeline}
+                onChange={(e) => updateQuestion("timeline", e.target.value)}
+                data-testid="input-timeline"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="targetAudience" className="text-xs font-medium">
+                5. Who is the target audience/end user?
+              </Label>
+              <Input
+                id="targetAudience"
+                placeholder="e.g., B2B clients, young professionals, enterprise customers"
+                value={questions.targetAudience}
+                onChange={(e) => updateQuestion("targetAudience", e.target.value)}
+                data-testid="input-target-audience"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="successCriteria" className="text-xs font-medium">
+                6. How will you measure success?
+              </Label>
+              <Input
+                id="successCriteria"
+                placeholder="e.g., User adoption rate, performance metrics, ROI targets"
+                value={questions.successCriteria}
+                onChange={(e) => updateQuestion("successCriteria", e.target.value)}
+                data-testid="input-success-criteria"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="constraints" className="text-xs font-medium">
+                7. Any specific constraints or requirements?
+              </Label>
+              <Input
+                id="constraints"
+                placeholder="e.g., Must integrate with Salesforce, GDPR compliance, mobile-first"
+                value={questions.constraints}
+                onChange={(e) => updateQuestion("constraints", e.target.value)}
+                data-testid="input-constraints"
+              />
+            </div>
+          </div>
+        </div>
 
         <Button
           onClick={handleAnalyze}

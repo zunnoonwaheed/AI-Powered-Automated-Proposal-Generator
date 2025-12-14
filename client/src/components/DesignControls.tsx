@@ -24,6 +24,7 @@ const colorPresets = [
 
 export function DesignControls({ settings, onChange }: DesignControlsProps) {
   const [logoPreview, setLogoPreview] = useState<string | undefined>(settings.logoUrl);
+  const [clientLogoPreview, setClientLogoPreview] = useState<string | undefined>(settings.clientLogoUrl);
 
   const handleColorPreset = (preset: typeof colorPresets[0]) => {
     onChange({
@@ -50,6 +51,24 @@ export function DesignControls({ settings, onChange }: DesignControlsProps) {
   const removeLogo = () => {
     setLogoPreview(undefined);
     onChange({ ...settings, logoUrl: undefined });
+  };
+
+  const handleClientLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setClientLogoPreview(dataUrl);
+        onChange({ ...settings, clientLogoUrl: dataUrl });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeClientLogo = () => {
+    setClientLogoPreview(undefined);
+    onChange({ ...settings, clientLogoUrl: undefined });
   };
 
   return (
@@ -173,44 +192,90 @@ export function DesignControls({ settings, onChange }: DesignControlsProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Logo</Label>
-                {logoPreview ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="max-w-[120px] max-h-[60px] object-contain rounded-md border p-2 bg-white"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6"
-                      onClick={removeLogo}
-                      data-testid="button-remove-logo"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                    <input
-                      type="file"
-                      id="logo-upload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      data-testid="input-logo-upload"
-                    />
-                    <label
-                      htmlFor="logo-upload"
-                      className="cursor-pointer flex flex-col items-center gap-2"
-                    >
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Upload logo</span>
-                    </label>
-                  </div>
-                )}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Company Logo (Kayi Digital - Top Left)</Label>
+                  <p className="text-xs text-muted-foreground">Your company logo appears on the top left of the proposal</p>
+                  {logoPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={logoPreview}
+                        alt="Company logo preview"
+                        className="max-w-[120px] max-h-[60px] object-contain rounded-md border p-2 bg-white"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={removeLogo}
+                        data-testid="button-remove-logo"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        id="logo-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        data-testid="input-logo-upload"
+                      />
+                      <label
+                        htmlFor="logo-upload"
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Upload company logo</span>
+                        <span className="text-xs text-muted-foreground/70">Transparent PNG recommended</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Client Logo (Top Right)</Label>
+                  <p className="text-xs text-muted-foreground">Client's logo appears on the top right of the proposal</p>
+                  {clientLogoPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={clientLogoPreview}
+                        alt="Client logo preview"
+                        className="max-w-[120px] max-h-[60px] object-contain rounded-md border p-2 bg-white"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={removeClientLogo}
+                        data-testid="button-remove-client-logo"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        id="client-logo-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleClientLogoUpload}
+                        data-testid="input-client-logo-upload"
+                      />
+                      <label
+                        htmlFor="client-logo-upload"
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Upload client logo</span>
+                        <span className="text-xs text-muted-foreground/70">Transparent PNG recommended</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </AccordionContent>

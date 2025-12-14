@@ -27,15 +27,34 @@ export async function registerRoutes(
         apiKey: process.env.ANTHROPIC_API_KEY,
       });
 
-      const { text } = analyzeRequirementsSchema.parse(req.body);
+      const { text, strategicQuestions } = analyzeRequirementsSchema.parse(req.body);
 
-      const systemPrompt = `You are an expert proposal writer and business analyst. Analyze the provided project requirements and extract key information to help generate a professional proposal.
+      // Build additional context from strategic questions
+      let additionalContext = "";
+      if (strategicQuestions) {
+        const contextParts = [];
+        if (strategicQuestions.projectGoal) contextParts.push(`Project Goal: ${strategicQuestions.projectGoal}`);
+        if (strategicQuestions.keyDeliverables) contextParts.push(`Expected Deliverables: ${strategicQuestions.keyDeliverables}`);
+        if (strategicQuestions.budget) contextParts.push(`Budget Range: ${strategicQuestions.budget}`);
+        if (strategicQuestions.timeline) contextParts.push(`Timeline: ${strategicQuestions.timeline}`);
+        if (strategicQuestions.targetAudience) contextParts.push(`Target Audience: ${strategicQuestions.targetAudience}`);
+        if (strategicQuestions.successCriteria) contextParts.push(`Success Criteria: ${strategicQuestions.successCriteria}`);
+        if (strategicQuestions.constraints) contextParts.push(`Constraints/Requirements: ${strategicQuestions.constraints}`);
+
+        if (contextParts.length > 0) {
+          additionalContext = `\n\n=== STRATEGIC INFORMATION ===\n${contextParts.join('\n')}\n\nPlease use this information to generate more accurate and tailored proposal content, especially for deliverables, timeline, pricing, and approach sections.`;
+        }
+      }
+
+      const systemPrompt = `You are an expert proposal writer and business analyst for Kayi Digital, a premium digital agency. Analyze the provided project requirements and extract key information to help generate a professional proposal.
+
+IMPORTANT: Pay special attention to the Strategic Information section which contains critical details about budget, timeline, and client priorities. Use this information to create accurate and tailored content.
 
 Return a JSON object with the following structure:
 {
   "projectName": "Name of the project",
   "clientName": "Client name if mentioned, or 'Client' as default",
-  "summary": "A professional 2-3 paragraph summary of the project scope, objectives, and expected outcomes",
+  "summary": "A professional 2-3 paragraph summary of the project scope, objectives, and expected outcomes. Reference the project goal if provided.",
   "deliverables": [
     {
       "title": "Phase or category name",
@@ -44,16 +63,56 @@ Return a JSON object with the following structure:
   ],
   "timeline": [
     {
-      "period": "Time period (e.g., 'Week 1-2', 'Month 1')",
+      "period": "Time period based on the timeline provided (e.g., 'Week 1-2', 'Month 1')",
       "title": "Phase name",
       "description": "Brief description of activities"
     }
   ],
-  "suggestedApproach": "A paragraph describing the recommended approach and methodology",
-  "keyRequirements": ["Requirement 1", "Requirement 2", ...]
+  "suggestedApproach": "A paragraph describing the recommended approach and methodology. Consider the target audience and success criteria if provided.",
+  "keyRequirements": ["Requirement 1", "Requirement 2", ...],
+  "suggestedTerms": [
+    {
+      "title": "Investment & Payment",
+      "content": "If budget is provided, create payment terms. Example: 'Total Investment: [amount]\\n• 50% due upon contract signing\\n• 50% due at project milestone'. If no budget, use 'To be discussed based on final scope.'"
+    },
+    {
+      "title": "Scope & Timeline",
+      "content": "Based on deliverables and timeline provided"
+    },
+    {
+      "title": "Revisions",
+      "content": "Standard revision policy (2-3 rounds included, additional at hourly rate)"
+    }
+  ],
+  "totalAmount": "If budget range provided, use the midpoint or suggest amount. Otherwise leave as 'TBD'",
+  "pricingTableRows": [
+    {
+      "service": "Service name (e.g., 'Website Development', 'Design Services')",
+      "description": "What's included/delivered (e.g., '3-page responsive website with SEO optimization', '3 concepts + 3 revision rounds')",
+      "investment": "Price amount (e.g., 'Rs 50,000') or 'Included' if part of package"
+    },
+    ... (5-8 rows total, with the LAST row always being the total)
+    {
+      "service": "Total Investment",
+      "description": "Complete package summary",
+      "investment": "Rs X,XXX (total amount from totalAmount field)"
+    }
+  ],
+  "nextStepItems": [
+    {
+      "step": "Step title (e.g., 'Discovery Call', 'Proposal Review', 'Contract Signing', 'Project Kickoff', 'Launch')",
+      "description": "Brief description of what happens in this step (e.g., 'Initial consultation to understand your needs', 'Review and approve the proposal')"
+    }
+    ... (3-5 steps total, representing the onboarding process from first contact to project completion)
+  ]
 }
 
-Be professional, thorough, and create content that would be suitable for a high-end agency proposal.`;
+IMPORTANT GUIDELINES:
+- For pricingTableRows: Break down the total investment into 5-8 line items showing individual services/phases and their costs. Use "Included" for items that are part of the package. The LAST row must always be "Total Investment" with the total amount.
+- For nextStepItems: Create 3-5 steps that outline the onboarding journey from initial contact to project launch. Common steps: Discovery Call, Proposal Review, Contract Signing, Initial Payment, Project Kickoff, Development/Work Phase, Final Review, Launch.
+- Ensure pricing table rows add up to the totalAmount.
+
+Be professional, thorough, and create content that would be suitable for a high-end agency proposal. Use the strategic information to make the proposal as accurate and tailored as possible.`;
 
       const response = await anthropic.messages.create({
         model: DEFAULT_MODEL,
@@ -62,7 +121,7 @@ Be professional, thorough, and create content that would be suitable for a high-
         messages: [
           {
             role: "user",
-            content: `Analyze the following project requirements and generate proposal content:\n\n${text}`,
+            content: `Analyze the following project requirements and generate proposal content:\n\n${text}${additionalContext}`,
           },
         ],
       });
@@ -98,6 +157,10 @@ Be professional, thorough, and create content that would be suitable for a high-
           timeline: analysisData.timeline || [],
           suggestedApproach: analysisData.suggestedApproach || "",
           keyRequirements: analysisData.keyRequirements || [],
+          suggestedTerms: analysisData.suggestedTerms || [],
+          totalAmount: analysisData.totalAmount || undefined,
+          pricingTableRows: analysisData.pricingTableRows || undefined,
+          nextStepItems: analysisData.nextStepItems || undefined,
         };
       } catch (parseError) {
         console.error("Failed to parse AI response:", content.text);
@@ -110,6 +173,10 @@ Be professional, thorough, and create content that would be suitable for a high-
           timeline: [],
           suggestedApproach: "",
           keyRequirements: [],
+          suggestedTerms: [],
+          totalAmount: undefined,
+          pricingTableRows: undefined,
+          nextStepItems: undefined,
         };
       }
 
@@ -189,9 +256,128 @@ Be professional, thorough, and create content that would be suitable for a high-
   return httpServer;
 }
 
+function generateCircularLogoSVG(centerText: string, companyName: string, primaryColor: string): string {
+  const segmentData = [
+    {
+      number: "01",
+      title: "PROVEN ROI\nACCELERATION",
+      description: "We make brands impossible\nto ignore. Your growth\nbecomes our legacy."
+    },
+    {
+      number: "02",
+      title: "FULL-SPECTRUM\nCREATIVE\nPOWERHOUSE",
+      description: "We don't make ads,\nwe craft experiences.\nFrom CGI to viral content."
+    },
+    {
+      number: "03",
+      title: "STRATEGIC\nPARTNERSHIP\nAPPROACH",
+      description: "We succeed when you\ndominate. Your competitors\nbecome our case studies."
+    },
+    {
+      number: "04",
+      title: "CUTTING-EDGE\nTECHNOLOGY\n& INSIGHTS",
+      description: "While others catch up,\nwe stay ahead. Next-gen\nstrategies for tomorrow."
+    }
+  ];
+
+  const size = 680;
+  const padding = 200;
+  const viewBoxSize = size + (padding * 2);
+  const centerX = viewBoxSize / 2;
+  const centerY = viewBoxSize / 2;
+  const outerRadius = (size / 2) - 15;
+  const innerRadius = size / 7;
+  const segmentCount = segmentData.length;
+  const anglePerSegment = (2 * Math.PI) / segmentCount;
+
+  const colors = ['#E5E5E5', primaryColor, '#2C2C2C', primaryColor];
+
+  // Helper to create arc path
+  const createArcPath = (startAngle: number, endAngle: number) => {
+    const startOuterX = centerX + outerRadius * Math.cos(startAngle);
+    const startOuterY = centerY + outerRadius * Math.sin(startAngle);
+    const endOuterX = centerX + outerRadius * Math.cos(endAngle);
+    const endOuterY = centerY + outerRadius * Math.sin(endAngle);
+    const startInnerX = centerX + innerRadius * Math.cos(endAngle);
+    const startInnerY = centerY + innerRadius * Math.sin(endAngle);
+    const endInnerX = centerX + innerRadius * Math.cos(startAngle);
+    const endInnerY = centerY + innerRadius * Math.sin(startAngle);
+    const largeArcFlag = endAngle - startAngle > Math.PI ? 1 : 0;
+
+    return `M ${startOuterX} ${startOuterY}
+            A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${endOuterX} ${endOuterY}
+            L ${startInnerX} ${startInnerY}
+            A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${endInnerX} ${endInnerY} Z`;
+  };
+
+  const segments = segmentData.map((segment, index) => {
+    const startAngle = -Math.PI / 2 + anglePerSegment * index;
+    const endAngle = startAngle + anglePerSegment;
+    const midAngle = startAngle + anglePerSegment / 2;
+    const textRadius = (outerRadius + innerRadius) / 2;
+    const textX = centerX + textRadius * Math.cos(midAngle);
+    const textY = centerY + textRadius * Math.sin(midAngle);
+    const color = colors[index % colors.length];
+    const isLight = color === '#E5E5E5';
+    const textColor = isLight ? '#000' : '#fff';
+    const descColor = isLight ? '#444' : 'rgba(255,255,255,0.95)';
+
+    return `
+      <path d="${createArcPath(startAngle, endAngle)}" fill="${color}" stroke="#fff" stroke-width="3"/>
+      <text x="${textX}" y="${textY - 50}" text-anchor="middle" dominant-baseline="middle"
+            fill="${textColor}" font-size="48" font-weight="bold" font-family="Arial, sans-serif">
+        ${segment.number}
+      </text>
+      ${segment.title.split('\n').map((line, i) => `
+        <text x="${textX}" y="${textY - 15 + i * 18}" text-anchor="middle" dominant-baseline="middle"
+              fill="${textColor}" font-size="16" font-weight="bold" font-family="Arial, sans-serif" letter-spacing="1.2">
+          ${line}
+        </text>
+      `).join('')}
+      ${segment.description.split('\n').map((line, i) => `
+        <text x="${textX}" y="${textY + 40 + i * 15}" text-anchor="middle" dominant-baseline="middle"
+              fill="${descColor}" font-size="13" font-family="Arial, sans-serif">
+          ${line}
+        </text>
+      `).join('')}
+    `;
+  }).join('');
+
+  return `
+    <svg width="100%" height="600" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}"
+         preserveAspectRatio="xMidYMid meet" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+      <defs>
+        <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${primaryColor}"/>
+          <stop offset="50%" stop-color="#000"/>
+          <stop offset="100%" stop-color="${primaryColor}"/>
+        </linearGradient>
+      </defs>
+      ${segments}
+      <circle cx="${centerX}" cy="${centerY}" r="${innerRadius + 12}" fill="#fff"
+              stroke="url(#borderGradient)" stroke-width="8"/>
+      <circle cx="${centerX}" cy="${centerY}" r="${innerRadius}" fill="#fff"/>
+      ${centerText.split('\n').map((line, i) => `
+        <text x="${centerX}" y="${centerY - 22 + i * 20}" text-anchor="middle" dominant-baseline="middle"
+              font-size="18" font-weight="bold" fill="#000" font-family="Arial, sans-serif">
+          ${line}
+        </text>
+      `).join('')}
+      <text x="${centerX}" y="${centerY + 2}" text-anchor="middle" dominant-baseline="middle"
+            font-size="22" font-weight="bold" fill="${primaryColor}" font-family="Arial, sans-serif">
+        ${companyName}
+      </text>
+      <text x="${centerX}" y="${centerY + 28}" text-anchor="middle" dominant-baseline="middle"
+            font-size="14" font-weight="bold" fill="#000" font-family="Arial, sans-serif">
+        OVER OTHERS
+      </text>
+    </svg>
+  `;
+}
+
 function generateProposalHTML(proposal: any): string {
   const { sections, designSettings, clientName, title } = proposal;
-  const { primaryColor, secondaryColor, accentColor, logoUrl, companyName, fontFamily } = designSettings;
+  const { primaryColor, secondaryColor, accentColor, logoUrl, clientLogoUrl, companyName, fontFamily } = designSettings;
 
   const getFontStack = () => {
     switch (fontFamily) {
@@ -201,13 +387,35 @@ function generateProposalHTML(proposal: any): string {
     }
   };
 
+  // Group sections into pages (2 sections per page, except special sections)
+  const pages: any[][] = [];
+  sections.forEach((section: any) => {
+    if (section.type === 'cover' || section.type === 'contact' || section.type === 'why-choose-us') {
+      // These sections get their own page
+      pages.push([section]);
+    } else {
+      // Group other sections in pairs
+      const lastPage = pages[pages.length - 1];
+      if (lastPage && lastPage.length === 1 &&
+          lastPage[0].type !== 'cover' &&
+          lastPage[0].type !== 'contact' &&
+          lastPage[0].type !== 'why-choose-us') {
+        // Add to existing page if it has only 1 section
+        lastPage.push(section);
+      } else {
+        // Start new page
+        pages.push([section]);
+      }
+    }
+  });
+
   const renderSection = (section: any): string => {
     switch (section.type) {
       case 'cover':
         return `
           <div class="page cover-page" style="background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);">
-            ${logoUrl ? `<img src="${logoUrl}" class="cover-logo" alt="Logo" />` : ''}
-            <div class="cover-company">${companyName.toLowerCase()}</div>
+            ${logoUrl ? `<img src="${logoUrl}" class="cover-logo" alt="Kayi Digital Logo" />` : ''}
+            ${clientLogoUrl ? `<img src="${clientLogoUrl}" class="client-logo" alt="Client Logo" />` : ''}
             <div class="cover-content">
               <h1 class="cover-title">${section.title}</h1>
               ${section.subtitle ? `<p class="cover-subtitle">${section.subtitle}</p>` : ''}
@@ -223,34 +431,34 @@ function generateProposalHTML(proposal: any): string {
       case 'project-summary':
       case 'approach':
         return `
-          <div class="page content-page">
+          <div class="section-wrapper">
             <div class="section-header">
-              <h2 style="color: ${secondaryColor};">${section.title}</h2>
-              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor});"></div>
+              <h2 style="color: ${secondaryColor}; font-size: 20pt; margin-bottom: 10px;">${section.title}</h2>
+              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="content-text">${section.content || ''}</div>
+            <div class="content-text" style="font-size: 10pt; line-height: 1.6;">${section.content || ''}</div>
           </div>
         `;
 
       case 'deliverables':
         const deliverables = section.deliverableItems || [];
         return `
-          <div class="page content-page">
+          <div class="section-wrapper">
             <div class="section-header">
-              <h2 style="color: ${secondaryColor};">${section.title}</h2>
-              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor});"></div>
+              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
             <div class="deliverables-list">
-              ${deliverables.map((phase: any, index: number) => `
-                <div class="deliverable-phase">
-                  <h3 style="color: ${secondaryColor};">
-                    <span class="phase-number" style="background: ${primaryColor};">${index + 1}</span>
+              ${deliverables.slice(0, 2).map((phase: any, index: number) => `
+                <div class="deliverable-phase" style="margin-bottom: 12px;">
+                  <h3 style="color: ${secondaryColor}; font-size: 11pt; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <span class="phase-number" style="background: ${primaryColor}; width: 22px; height: 22px; font-size: 10pt;">${index + 1}</span>
                     ${phase.title}
                   </h3>
-                  <ul>
-                    ${phase.items.map((item: string) => `
-                      <li>
-                        <span class="bullet" style="background: ${primaryColor};"></span>
+                  <ul style="list-style: none; padding-left: 30px;">
+                    ${phase.items.slice(0, 3).map((item: string) => `
+                      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; color: #555; font-size: 8.5pt; line-height: 1.4;">
+                        <span class="bullet" style="background: ${primaryColor}; width: 4px; height: 4px; margin-top: 5px;"></span>
                         ${item}
                       </li>
                     `).join('')}
@@ -264,41 +472,154 @@ function generateProposalHTML(proposal: any): string {
       case 'timeline':
         const timelineItems = section.timelineItems || [];
         return `
-          <div class="page content-page">
+          <div class="section-wrapper">
             <div class="section-header">
-              <h2 style="color: ${secondaryColor};">${section.title}</h2>
-              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor});"></div>
+              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="timeline">
-              <div class="timeline-line" style="background: ${primaryColor}30;"></div>
-              ${timelineItems.map((item: any) => `
-                <div class="timeline-item">
-                  <div class="timeline-dot" style="border-color: ${primaryColor};"></div>
-                  <div class="timeline-content">
-                    <div class="timeline-header">
-                      <span class="timeline-period" style="background: ${primaryColor};">${item.period}</span>
-                      <h4 style="color: ${secondaryColor};">${item.title}</h4>
+            <div style="margin-top: 12px; padding-bottom: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${timelineItems.slice(0, 2).map((item: any, index: number) => `
+                  <div style="position: relative; display: flex; gap: 12px; align-items: flex-start;">
+                    <!-- Timeline Indicator Column -->
+                    <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 2px;">
+                      <!-- Period Badge -->
+                      <div style="
+                        background-color: ${primaryColor};
+                        color: white;
+                        font-size: 7.5pt;
+                        font-weight: 700;
+                        padding: 4px 10px;
+                        border-radius: 15px;
+                        white-space: nowrap;
+                        box-shadow: 0 2px 6px ${primaryColor}25;
+                        margin-bottom: 6px;
+                        min-width: 70px;
+                        text-align: center;
+                      ">
+                        ${item.period}
+                      </div>
+
+                      <!-- Dot -->
+                      <div style="
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 50%;
+                        background-color: white;
+                        border: 2.5px solid ${primaryColor};
+                        box-shadow: 0 0 0 3px ${primaryColor}12;
+                        z-index: 2;
+                      "></div>
+
+                      <!-- Connecting Line (except last item) -->
+                      ${index < timelineItems.slice(0, 2).length - 1 ? `
+                        <div style="
+                          width: 2px;
+                          flex-grow: 1;
+                          min-height: 20px;
+                          background: linear-gradient(180deg, ${primaryColor} 0%, ${primaryColor}25 100%);
+                          margin-top: 3px;
+                        "></div>
+                      ` : ''}
                     </div>
-                    <p>${item.description}</p>
-                    ${item.items && item.items.length > 0 ? `
-                      <ul class="timeline-subitems">
-                        ${item.items.map((subItem: string) => `
-                          <li>
-                            <span class="mini-bullet" style="background: ${accentColor};"></span>
-                            ${subItem}
-                          </li>
-                        `).join('')}
-                      </ul>
-                    ` : ''}
+
+                    <!-- Content Card -->
+                    <div style="
+                      flex: 1;
+                      background-color: ${primaryColor}04;
+                      border: 1px solid ${primaryColor}18;
+                      border-radius: 8px;
+                      padding: 10px 12px;
+                      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+                      position: relative;
+                      overflow: hidden;
+                    ">
+                      <!-- Title -->
+                      <h4 style="
+                        font-size: 10.5pt;
+                        font-weight: 700;
+                        color: ${secondaryColor};
+                        margin-bottom: 4px;
+                        line-height: 1.2;
+                      ">
+                        ${item.title}
+                      </h4>
+
+                      <!-- Description -->
+                      <p style="
+                        font-size: 8.5pt;
+                        color: #666;
+                        line-height: 1.4;
+                        margin-bottom: ${item.items && item.items.length > 0 ? '6px' : '0'};
+                      ">
+                        ${item.description}
+                      </p>
+
+                      <!-- Sub-items -->
+                      ${item.items && item.items.length > 0 ? `
+                        <div style="
+                          display: grid;
+                          grid-template-columns: repeat(2, 1fr);
+                          gap: 3px 10px;
+                          margin-top: 6px;
+                          padding-top: 6px;
+                          border-top: 1px solid ${primaryColor}12;
+                        ">
+                          ${item.items.slice(0, 2).map((subItem: string) => `
+                            <div style="display: flex; align-items: flex-start; gap: 5px;">
+                              <div style="
+                                width: 4px;
+                                height: 4px;
+                                border-radius: 50%;
+                                background-color: ${primaryColor};
+                                margin-top: 3px;
+                                flex-shrink: 0;
+                              "></div>
+                              <span style="
+                                font-size: 7.5pt;
+                                color: #555;
+                                line-height: 1.3;
+                              ">
+                                ${subItem}
+                              </span>
+                            </div>
+                          `).join('')}
+                        </div>
+                      ` : ''}
+                    </div>
                   </div>
-                </div>
-              `).join('')}
+                `).join('')}
+              </div>
             </div>
           </div>
         `;
 
       case 'why-choose-us':
         const features = section.featureItems || [];
+
+        // Check if circular logo is enabled
+        if (section.useCircularLogo) {
+          const centerCompanyName = section.companyName || companyName || "";
+          const centerText = section.centerText || "WHY CHOOSE";
+
+          // Generate circular logo SVG
+          const circularLogoSVG = generateCircularLogoSVG(centerText, centerCompanyName, primaryColor);
+
+          return `
+            <div class="page content-page" style="padding: 40px 50px; background: white; min-height: 297mm; max-height: 297mm;">
+              <div style="margin-bottom: 0;">
+                <h2 style="color: ${secondaryColor}; font-size: 22pt; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px;">
+                  ${section.title}
+                </h2>
+                <div style="width: 60px; height: 3px; background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); border-radius: 2px; margin-bottom: 0;"></div>
+              </div>
+              <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+                ${circularLogoSVG}
+              </div>
+            </div>
+          `;
+        }
+
         return `
           <div class="page dark-page" style="background: linear-gradient(135deg, ${secondaryColor} 0%, ${primaryColor}dd 100%);">
             <div class="section-header light">
@@ -321,28 +642,70 @@ function generateProposalHTML(proposal: any): string {
 
       case 'pricing':
         const terms = section.termItems || [];
+        const tableRows = section.pricingTableRows || [];
         return `
-          <div class="page content-page">
+          <div class="section-wrapper">
             <div class="section-header">
-              <h2 style="color: ${secondaryColor};">${section.title}</h2>
-              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor});"></div>
+              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="terms-list">
-              ${terms.map((term: any) => `
-                <div class="term-item">
-                  <h4 style="color: ${secondaryColor};">${term.title}</h4>
-                  <div class="term-content" style="border-color: ${primaryColor}40;">
-                    ${term.content.replace(/\n/g, '<br>')}
-                  </div>
+            ${tableRows.length > 0 ? `
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1.5px solid ${primaryColor};">
+                <thead>
+                  <tr style="background-color: ${primaryColor}12; border-bottom: 1.5px solid ${primaryColor};">
+                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}35; width: 28%;">
+                      ${section.tableHeaders?.service || 'Service Component'}
+                    </th>
+                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}35; width: 48%;">
+                      ${section.tableHeaders?.description || 'What You Get'}
+                    </th>
+                    <th style="padding: 8px 10px; text-align: center; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; width: 24%;">
+                      ${section.tableHeaders?.investment || 'Investment'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows.slice(0, 6).map((row: any, index: number) => {
+                    const isTotal = index === tableRows.slice(0, 6).length - 1 && row.service.toLowerCase().includes('total');
+                    return `
+                      <tr style="background-color: ${isTotal ? `${primaryColor}06` : 'transparent'}; border-bottom: 1px solid ${primaryColor}20;">
+                        <td style="padding: 7px 10px; font-size: ${isTotal ? '10pt' : '8.5pt'}; font-weight: ${isTotal ? '700' : '500'}; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
+                          ${row.service}
+                        </td>
+                        <td style="padding: 7px 10px; font-size: 8.5pt; color: #555; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
+                          ${row.description}
+                        </td>
+                        <td style="padding: 7px 10px; text-align: center; font-size: ${isTotal ? '12pt' : '9pt'}; font-weight: ${isTotal ? '700' : '600'}; color: ${isTotal ? primaryColor : '#555'};">
+                          ${row.investment}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+              ${section.paymentTerms ? `
+                <div style="border-left: 2.5px solid ${primaryColor}; padding-left: 10px; margin-top: 10px; color: #666; font-size: 8.5pt; font-style: italic; line-height: 1.4;">
+                  ${section.paymentTerms}
                 </div>
-              `).join('')}
-            </div>
-            ${section.totalAmount ? `
-              <div class="total-box" style="background: ${primaryColor}10;">
-                <span class="total-label">Total Investment</span>
-                <span class="total-amount" style="color: ${primaryColor};">${section.totalAmount}</span>
+              ` : ''}
+            ` : `
+              <div class="terms-list">
+                ${terms.map((term: any) => `
+                  <div class="term-item">
+                    <h4 style="color: ${secondaryColor};">${term.title}</h4>
+                    <div class="term-content" style="border-color: ${primaryColor}40;">
+                      ${term.content.replace(/\n/g, '<br>')}
+                    </div>
+                  </div>
+                `).join('')}
               </div>
-            ` : ''}
+              ${section.totalAmount ? `
+                <div class="total-box" style="background: ${primaryColor}10;">
+                  <span class="total-label">Total Investment</span>
+                  <span class="total-amount" style="color: ${primaryColor};">${section.totalAmount}</span>
+                </div>
+              ` : ''}
+            `}
           </div>
         `;
 
@@ -350,36 +713,92 @@ function generateProposalHTML(proposal: any): string {
         const steps = section.nextStepItems || [];
         const requirements = section.items || [];
         return `
-          <div class="page content-page">
+          <div class="section-wrapper">
             <div class="section-header">
-              <h2 style="color: ${secondaryColor};">${section.title}</h2>
-              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor});"></div>
+              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+              <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="next-steps-section">
-              <h4 style="color: ${secondaryColor};">Getting Started</h4>
-              <div class="steps-list">
-                ${steps.map((step: any, index: number) => `
-                  <div class="step-item">
-                    <span class="step-number" style="background: ${primaryColor};">${index + 1}</span>
-                    <div class="step-content">
-                      <strong style="color: ${secondaryColor};">${step.step}:</strong>
-                      ${step.description}
+            ${steps.length > 0 ? `
+              <div style="
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 8px;
+                margin-top: 12px;
+              ">
+                ${steps.slice(0, 5).map((step: any, index: number) => {
+                  const isLast = index === steps.slice(0, 5).length - 1;
+                  return `
+                    <div style="
+                      position: relative;
+                      padding: 12px 8px;
+                      border-radius: 8px;
+                      background-color: ${isLast ? primaryColor : '#fff'};
+                      border: ${isLast ? 'none' : `1.5px solid ${primaryColor}12`};
+                      box-shadow: ${isLast ? `0 3px 12px ${primaryColor}30` : '0 1px 4px rgba(0,0,0,0.03)'};
+                      text-align: center;
+                    ">
+                      <!-- Step Number Badge -->
+                      <div style="
+                        width: 26px;
+                        height: 26px;
+                        border-radius: 50%;
+                        background-color: ${isLast ? 'rgba(255,255,255,0.25)' : primaryColor};
+                        color: white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11pt;
+                        font-weight: bold;
+                        margin: 0 auto 8px;
+                        box-shadow: ${isLast ? '0 2px 4px rgba(0,0,0,0.1)' : `0 2px 4px ${primaryColor}20`};
+                      ">
+                        ${index + 1}
+                      </div>
+
+                      <!-- Step Title -->
+                      <h4 style="
+                        font-size: 8.5pt;
+                        font-weight: 700;
+                        color: ${isLast ? 'white' : secondaryColor};
+                        line-height: 1.2;
+                        text-transform: uppercase;
+                        letter-spacing: 0.2px;
+                        margin: 6px 0;
+                        padding: 0 2px;
+                        min-height: 20px;
+                      ">
+                        ${step.step}
+                      </h4>
+
+                      <!-- Step Description -->
+                      <p style="
+                        font-size: 7pt;
+                        color: ${isLast ? 'rgba(255,255,255,0.9)' : '#666'};
+                        line-height: 1.3;
+                        margin: 0;
+                        padding: 0 2px;
+                        min-height: 36px;
+                      ">
+                        ${step.description}
+                      </p>
+
+                      ${!isLast ? `
+                        <div style="
+                          position: absolute;
+                          right: -6px;
+                          top: 50%;
+                          transform: translateY(-50%);
+                          width: 0;
+                          height: 0;
+                          border-top: 6px solid transparent;
+                          border-bottom: 6px solid transparent;
+                          border-left: 6px solid ${primaryColor}20;
+                          z-index: 1;
+                        "></div>
+                      ` : ''}
                     </div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            ${requirements.length > 0 ? `
-              <div class="requirements-section">
-                <h4 style="color: ${secondaryColor};">What We Need From You</h4>
-                <ul>
-                  ${requirements.map((req: string) => `
-                    <li>
-                      <span class="bullet" style="background: ${primaryColor};"></span>
-                      ${req}
-                    </li>
-                  `).join('')}
-                </ul>
+                  `;
+                }).join('')}
               </div>
             ` : ''}
           </div>
@@ -441,7 +860,12 @@ function generateProposalHTML(proposal: any): string {
           page-break-after: always;
           position: relative;
         }
-        
+
+        /* Multi-section pages don't need padding on the page itself */
+        .page.multi-section {
+          padding: 0;
+        }
+
         .page:last-child {
           page-break-after: avoid;
         }
@@ -459,20 +883,19 @@ function generateProposalHTML(proposal: any): string {
         .cover-logo {
           position: absolute;
           top: 40px;
-          right: 50px;
+          left: 50px;
           max-width: 100px;
           max-height: 50px;
           object-fit: contain;
         }
-        
-        .cover-company {
+
+        .client-logo {
           position: absolute;
           top: 40px;
-          left: 50px;
-          color: rgba(255,255,255,0.8);
-          font-size: 12pt;
-          font-weight: 500;
-          letter-spacing: 2px;
+          right: 50px;
+          max-width: 100px;
+          max-height: 50px;
+          object-fit: contain;
         }
         
         .cover-content {
@@ -534,82 +957,97 @@ function generateProposalHTML(proposal: any): string {
         .content-page {
           background: white;
         }
-        
+
+        /* Section Wrapper - for grouped sections */
+        .section-wrapper {
+          background: white;
+          padding: 30px 50px;
+          flex: 1;
+          max-height: 148mm;
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+
+        .section-wrapper:not(:last-child) {
+          border-bottom: 1px solid #f0f0f0;
+        }
+
         .section-header {
-          margin-bottom: 30px;
+          margin-bottom: 20px;
         }
-        
+
         .section-header h2 {
-          font-size: 22pt;
+          font-size: 20pt;
           font-weight: 700;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
-        
+
         .section-header.light h2 {
           color: white;
         }
-        
+
         .header-line {
-          width: 60px;
-          height: 4px;
+          width: 50px;
+          height: 3px;
           border-radius: 2px;
         }
-        
+
         .content-text {
           color: #555;
-          font-size: 11pt;
-          line-height: 1.8;
+          font-size: 10pt;
+          line-height: 1.6;
           white-space: pre-wrap;
         }
         
         /* Deliverables */
         .deliverables-list {
-          margin-top: 20px;
+          margin-top: 15px;
         }
-        
+
         .deliverable-phase {
-          margin-bottom: 30px;
+          margin-bottom: 20px;
         }
-        
+
         .deliverable-phase h3 {
-          font-size: 14pt;
+          font-size: 12pt;
           font-weight: 600;
-          margin-bottom: 15px;
+          margin-bottom: 10px;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
         }
-        
+
         .phase-number {
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 12pt;
+          font-size: 11pt;
           font-weight: 700;
         }
-        
+
         .deliverables-list ul {
           list-style: none;
-          padding-left: 40px;
+          padding-left: 35px;
         }
-        
+
         .deliverables-list li {
           display: flex;
           align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 8px;
+          gap: 10px;
+          margin-bottom: 6px;
           color: #555;
+          font-size: 9pt;
         }
-        
+
         .bullet {
-          width: 6px;
-          height: 6px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
-          margin-top: 8px;
+          margin-top: 6px;
           flex-shrink: 0;
         }
         
@@ -890,7 +1328,18 @@ function generateProposalHTML(proposal: any): string {
       </style>
     </head>
     <body>
-      ${sections.map(renderSection).join('')}
+      ${pages.map(pageSections => {
+        // If page has only one section, render it directly
+        if (pageSections.length === 1) {
+          return renderSection(pageSections[0]);
+        }
+        // If page has multiple sections, wrap them in a multi-section page
+        return `
+          <div class="page content-page multi-section" style="display: flex; flex-direction: column; background: white;">
+            ${pageSections.map(renderSection).join('')}
+          </div>
+        `;
+      }).join('')}
     </body>
     </html>
   `;
