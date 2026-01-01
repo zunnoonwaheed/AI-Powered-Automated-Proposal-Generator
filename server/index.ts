@@ -68,40 +68,52 @@ app.use((req, res, next) => {
 });
 
 // Initialize the app
-(async () => {
-  await registerRoutes(httpServer, app);
+let initPromise: Promise<void> | null = null;
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+async function initializeApp() {
+  if (initPromise) return initPromise;
 
-    res.status(status).json({ message });
-    throw err;
-  });
+  initPromise = (async () => {
+    await registerRoutes(httpServer, app);
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-  // Only start the server in non-Vercel environments
-  if (!process.env.VERCEL) {
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
+      res.status(status).json({ message });
+      throw err;
+    });
+
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (process.env.NODE_ENV === "production") {
+      serveStatic(app);
+    } else {
+      const { setupVite } = await import("./vite");
+      await setupVite(httpServer, app);
+    }
+  })();
+
+  return initPromise;
+}
+
+// Start initialization immediately
+const init = initializeApp();
+
+// For Vercel, export a handler that waits for initialization
+if (process.env.VERCEL) {
+  module.exports = async (req: any, res: any) => {
+    await init;
+    return app(req, res);
+  };
+} else {
+  // For local development, start server after initialization
+  init.then(() => {
     const port = parseInt(process.env.PORT || "5000", 10);
     const host = process.env.HOST || "localhost";
     httpServer.listen(port, host, () => {
       log(`serving on ${host}:${port}`);
     });
-  }
-})();
-
-// Export for Vercel serverless - must be at module level
-export default app;
+  });
+}
