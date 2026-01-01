@@ -67,53 +67,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize the app
-let initPromise: Promise<void> | null = null;
+// Initialize the app using top-level await
+await registerRoutes(httpServer, app);
 
-async function initializeApp() {
-  if (initPromise) return initPromise;
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
 
-  initPromise = (async () => {
-    await registerRoutes(httpServer, app);
+  res.status(status).json({ message });
+  throw err;
+});
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-
-      res.status(status).json({ message });
-      throw err;
-    });
-
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
-    }
-  })();
-
-  return initPromise;
+// importantly only setup vite in development and after
+// setting up all the other routes so the catch-all route
+// doesn't interfere with the other routes
+if (process.env.NODE_ENV === "production") {
+  serveStatic(app);
+} else {
+  const { setupVite } = await import("./vite");
+  await setupVite(httpServer, app);
 }
 
-// Start initialization immediately
-const init = initializeApp();
-
-// For Vercel, export a handler that waits for initialization
-if (process.env.VERCEL) {
-  module.exports = async (req: any, res: any) => {
-    await init;
-    return app(req, res);
-  };
-} else {
-  // For local development, start server after initialization
-  init.then(() => {
-    const port = parseInt(process.env.PORT || "5000", 10);
-    const host = process.env.HOST || "localhost";
-    httpServer.listen(port, host, () => {
-      log(`serving on ${host}:${port}`);
-    });
+// For Vercel serverless, export the app directly
+// For local development, start the server
+if (!process.env.VERCEL) {
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const host = process.env.HOST || "localhost";
+  httpServer.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
   });
 }
+
+// Export for Vercel - app is now fully initialized
+export default app;

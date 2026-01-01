@@ -3,14 +3,14 @@
   "name": "proposal-ai",
   "builds": [
     {
-      "src": "dist/index.cjs",
+      "src": "dist/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "dist/index.cjs"
+      "dest": "dist/index.js"
     }
   ]
 }
