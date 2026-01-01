@@ -1,12 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Anthropic from "@anthropic-ai/sdk";
-import puppeteer from "puppeteer";
 import { analyzeRequirementsSchema } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+
+// Dynamic import for Puppeteer - use chromium for Vercel, regular puppeteer for local
+async function getBrowser() {
+  if (process.env.VERCEL) {
+    const chromium = await import("@sparticuz/chromium");
+    const puppeteerCore = await import("puppeteer-core");
+    return puppeteerCore.default.launch({
+      args: chromium.default.args,
+      defaultViewport: chromium.default.defaultViewport,
+      executablePath: await chromium.default.executablePath(),
+      headless: chromium.default.headless,
+    });
+  } else {
+    const puppeteer = await import("puppeteer");
+    return puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -210,13 +229,7 @@ Be professional, thorough, and create content that would be suitable for a high-
 
       // Launch Puppeteer and generate PDF
       console.log("Launching browser...");
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-        ],
-      });
+      browser = await getBrowser();
 
       const page = await browser.newPage();
       console.log("Setting page content...");
