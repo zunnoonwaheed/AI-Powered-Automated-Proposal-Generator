@@ -67,6 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Initialize the app
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -88,11 +89,8 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // For Vercel, export the app without starting the server
-  if (process.env.VERCEL) {
-    // Export for Vercel serverless
-    module.exports = app;
-  } else {
+  // Only start the server in non-Vercel environments
+  if (!process.env.VERCEL) {
     // ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
     // this serves both the API and the client.
@@ -104,3 +102,6 @@ app.use((req, res, next) => {
     });
   }
 })();
+
+// Export for Vercel serverless - must be at module level
+export default app;
