@@ -1,14 +1,15 @@
-import { useState } from "react";
-import { 
-  GripVertical, 
-  Trash2, 
-  ChevronDown, 
+import { useState, useEffect } from "react";
+import {
+  GripVertical,
+  Trash2,
+  ChevronDown,
   ChevronUp,
   FileText,
   CheckSquare,
   Lightbulb,
   Calendar,
   Star,
+  TrendingUp,
   DollarSign,
   ArrowRight,
   Mail,
@@ -67,6 +68,20 @@ export function SectionEditor({
   const updateSection = (updates: Partial<ProposalSection>) => {
     onChange({ ...section, ...updates });
   };
+
+  // Auto-initialize stats for "why-choose-us" section
+  useEffect(() => {
+    if (section.type === "why-choose-us" && (!section.statItems || section.statItems.length === 0)) {
+      updateSection({
+        statItems: [
+          { id: nanoid(), value: "500+", label: "Projects Delivered" },
+          { id: nanoid(), value: "98%", label: "Client Satisfaction" },
+          { id: nanoid(), value: "10+", label: "Years Experience" },
+          { id: nanoid(), value: "24/7", label: "Support Available" },
+        ],
+      });
+    }
+  }, [section.type]); // Only run when section type changes or on mount
 
   return (
     <Card className="overflow-visible">
@@ -261,6 +276,21 @@ function renderSectionContent(
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* By The Numbers Stats */}
+          <div className="border-2 border-dashed border-teal-200 rounded-lg p-4 bg-teal-50">
+            <label className="text-sm font-medium mb-3 block text-teal-900">📊 By The Numbers</label>
+            <p className="text-xs text-teal-700 mb-3">
+              Add key statistics that appear below the features section (2-4 stats recommended)
+            </p>
+            {section.statItems && section.statItems.length > 0 && (
+              <StatsEditor
+                items={section.statItems}
+                onChange={(items) => updateSection({ statItems: items })}
+                sectionIndex={index}
+              />
+            )}
           </div>
         </div>
       );
@@ -869,6 +899,79 @@ function PricingTableEditor({
           Default: "70% upfront and remaining 30% on project completion"
         </p>
       </div>
+    </div>
+  );
+}
+
+function StatsEditor({
+  items,
+  onChange,
+  sectionIndex
+}: {
+  items: NonNullable<ProposalSection["statItems"]>;
+  onChange: (items: NonNullable<ProposalSection["statItems"]>) => void;
+  sectionIndex: number;
+}) {
+  const addItem = () => {
+    onChange([...items, { id: nanoid(), value: "100+", label: "New Stat" }]);
+  };
+
+  const updateItem = (index: number, updates: Partial<typeof items[0]>) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], ...updates };
+    onChange(newItems);
+  };
+
+  const removeItem = (index: number) => {
+    onChange(items.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        {items.map((item, index) => (
+          <div key={item.id} className="border rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                {index + 1}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeItem(index)}
+                className="text-destructive ml-auto h-7 w-7"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <Input
+              value={item.value}
+              onChange={(e) => updateItem(index, { value: e.target.value })}
+              placeholder="500+ or 98% or 24/7"
+              className="font-bold text-lg text-center"
+              data-testid={`input-stat-value-${sectionIndex}-${index}`}
+            />
+            <Input
+              value={item.label}
+              onChange={(e) => updateItem(index, { label: e.target.value })}
+              placeholder="Label (e.g., Projects Delivered)"
+              className="text-sm"
+              data-testid={`input-stat-label-${sectionIndex}-${index}`}
+            />
+          </div>
+        ))}
+      </div>
+      {items.length < 6 && (
+        <Button variant="outline" onClick={addItem} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Stat
+        </Button>
+      )}
+      {items.length >= 6 && (
+        <p className="text-xs text-center text-muted-foreground">
+          Maximum 6 stats for best layout
+        </p>
+      )}
     </div>
   );
 }

@@ -26,3 +26,8 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Screenshots and temporary images
+*.png
+!client/public/footer.png
+!client/public/cards.png

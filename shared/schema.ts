@@ -65,6 +65,15 @@ export const nextStepItemSchema = z.object({
 
 export type NextStepItem = z.infer<typeof nextStepItemSchema>;
 
+// Stat Item
+export const statItemSchema = z.object({
+  id: z.string(),
+  value: z.string(),
+  label: z.string(),
+});
+
+export type StatItem = z.infer<typeof statItemSchema>;
+
 // Term Item
 export const termItemSchema = z.object({
   id: z.string(),
@@ -104,6 +113,7 @@ export const proposalSectionSchema = z.object({
   featureItems: z.array(featureItemSchema).optional(),
   nextStepItems: z.array(nextStepItemSchema).optional(),
   termItems: z.array(termItemSchema).optional(),
+  statItems: z.array(statItemSchema).optional(),
   totalAmount: z.string().optional(),
   paymentTerms: z.string().optional(),
   imageUrl: z.string().optional(),
@@ -124,6 +134,7 @@ export const designSettingsSchema = z.object({
   primaryColor: z.string().default("#0d4f4f"),
   secondaryColor: z.string().default("#1a1a2e"),
   accentColor: z.string().default("#3498db"),
+  backgroundColor: z.string().default("#ffffff"), // Background color for contact page
   logoUrl: z.string().optional(), // Company logo (Kayi Digital - top LEFT)
   clientLogoUrl: z.string().optional(), // Client logo (top RIGHT)
   companyName: z.string().default("Your Company"),

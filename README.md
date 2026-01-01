@@ -1,110 +1,69 @@
-# Proposal Perfect
+# Proposal AI - AI-Powered Proposal Generator
 
-AI-powered proposal generator using Claude AI. Create professional proposals with intelligent content generation, customizable design, and PDF export.
+Generate professional, customized proposals using AI assistance powered by Claude.
 
 ## Features
 
-- 🤖 AI-powered requirements analysis (Claude Sonnet 4.5)
-- 📝 7 strategic questions for better proposal generation
-- 🎨 Customizable design (colors, fonts, logos)
-- 📄 Professional PDF generation
-- 📱 Responsive design
-- 💼 Kayi Digital branding
+- 🤖 AI-powered proposal generation using Claude
+- 🎨 Customizable design themes and colors
+- 📄 PDF export functionality
+- ✨ Multiple proposal sections (Timeline, Deliverables, Pricing, etc.)
+- 🎯 Interactive section editor
 
-## Tech Stack
+## Deployment on Vercel
 
-- **Frontend**: React + Vite + TypeScript + Tailwind CSS
-- **Backend**: Express.js + Node.js
-- **AI**: Anthropic Claude API
-- **PDF**: Puppeteer
-- **UI**: Shadcn UI components
+### Step 1: Clone and Install
 
-## Quick Start
+```bash
+git clone https://github.com/zunnoonwaheed/AI-Powered-Automated-Proposal-Generator.git
+cd AI-Powered-Automated-Proposal-Generator
+npm install
+```
 
-### Prerequisites
-- Node.js 18+ and npm
-- Anthropic API key
+### Step 2: Environment Variables
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd Proposal-Perfect
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
+1. Get your Anthropic API key from [https://console.anthropic.com/](https://console.anthropic.com/)
+2. Copy `.env.example` to `.env`:
    ```bash
    cp .env.example .env
    ```
-
-   Edit `.env` and add your Anthropic API key:
+3. Add your API key to `.env`:
    ```
-   ANTHROPIC_API_KEY=your_api_key_here
-   ```
-
-4. **Run development server**
-   ```bash
-   npm run dev
+   ANTHROPIC_API_KEY=your_actual_api_key_here
    ```
 
-5. **Open in browser**
-   ```
-   http://localhost:5000
-   ```
+### Step 3: Deploy to Vercel
 
-## Deployment
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/zunnoonwaheed/AI-Powered-Automated-Proposal-Generator)
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed Vercel deployment instructions.
+Or manually:
 
-### Quick Deploy to Vercel
+1. Push code to GitHub
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "Add New" → "Project"
+4. Import your GitHub repository
+5. Set project name to: `proposal-ai`
+6. Add environment variable:
+   - Key: `ANTHROPIC_API_KEY`
+   - Value: Your Anthropic API key
+7. Click "Deploy"
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
+## Local Development
 
-**Remember to add environment variables in Vercel:**
-- `ANTHROPIC_API_KEY` - Your Anthropic API key
-- `NODE_ENV` - Set to `production`
-
-## Usage
-
-1. **Upload & Analyze**: Paste requirements or upload file
-2. **Answer Questions**: Fill 7 strategic questions for AI
-3. **Edit Content**: Customize generated proposal
-4. **Design**: Upload logos and adjust colors
-5. **Preview & Download**: Generate PDF
-
-## Project Structure
-
-```
-├── client/          # React frontend
-├── server/          # Express backend
-├── shared/          # Shared types and schemas
-├── script/          # Build scripts
-└── dist/            # Production build
+```bash
+npm run dev
 ```
 
-## Scripts
+Access the application at `http://localhost:5175`
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run check` - TypeScript type checking
+## Tech Stack
 
-## Environment Variables
-
-See `.env.example` for all available variables.
+- **Frontend**: React + TypeScript + Vite
+- **Backend**: Express + Node.js
+- **AI**: Anthropic Claude API
+- **Styling**: Tailwind CSS
+- **PDF Generation**: Puppeteer
 
 ## License
 
 MIT
-
-## Contact
-
-Kayi Digital
-- Email: hello@kayi.digital
-- Phone: +92 309 0613822

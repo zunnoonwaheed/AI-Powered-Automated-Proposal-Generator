@@ -110,6 +110,12 @@ export function createSection(type: ProposalSection["type"], title: string, cont
             description: "While others catch up, we stay ahead. Next-gen strategies for tomorrow's market.",
           },
         ],
+        statItems: [
+          { id: nanoid(), value: "500+", label: "Projects Delivered" },
+          { id: nanoid(), value: "98%", label: "Client Satisfaction" },
+          { id: nanoid(), value: "10+", label: "Years Experience" },
+          { id: nanoid(), value: "24/7", label: "Support Available" },
+        ],
       };
     case "pricing":
       return {
@@ -192,6 +198,7 @@ export function createDefaultDesignSettings(): DesignSettings {
     primaryColor: "#0d4f4f",
     secondaryColor: "#1a1a2e",
     accentColor: "#3498db",
+    backgroundColor: "#ffffff",
     logoUrl: undefined,
     companyName: "Kayi Digital",
     headerStyle: "gradient",

@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import Anthropic from "@anthropic-ai/sdk";
 import puppeteer from "puppeteer";
 import { analyzeRequirementsSchema } from "@shared/schema";
+import fs from "fs";
+import path from "path";
 
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 
@@ -377,7 +379,25 @@ function generateCircularLogoSVG(centerText: string, companyName: string, primar
 
 function generateProposalHTML(proposal: any): string {
   const { sections, designSettings, clientName, title } = proposal;
-  const { primaryColor, secondaryColor, accentColor, logoUrl, clientLogoUrl, companyName, fontFamily } = designSettings;
+  const { primaryColor, secondaryColor, accentColor, backgroundColor, logoUrl, clientLogoUrl, companyName, fontFamily } = designSettings;
+
+  // Determine if background is dark
+  const bgColor = backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
+  const textColor = isDarkBg ? '#ffffff' : '#555';
+  const headingColor = isDarkBg ? '#ffffff' : secondaryColor;
+
+  // Load footer image as base64 for Contact page only
+  let footerImageBase64 = '';
+  try {
+    const footerPath = path.join(process.cwd(), 'client', 'public', 'footer.png');
+    if (fs.existsSync(footerPath)) {
+      const footerBuffer = fs.readFileSync(footerPath);
+      footerImageBase64 = `data:image/png;base64,${footerBuffer.toString('base64')}`;
+    }
+  } catch (error) {
+    console.error('Error loading footer image:', error);
+  }
 
   const getFontStack = () => {
     switch (fontFamily) {
@@ -431,33 +451,33 @@ function generateProposalHTML(proposal: any): string {
       case 'project-summary':
       case 'approach':
         return `
-          <div class="section-wrapper">
-            <div class="section-header">
-              <h2 style="color: ${secondaryColor}; font-size: 20pt; margin-bottom: 10px;">${section.title}</h2>
+          <div class="section-wrapper" style="margin: 0; padding: 30px 50px; background-color: ${bgColor};">
+            <div class="section-header" style="margin-bottom: 15px;">
+              <h2 style="color: ${headingColor}; font-size: 20pt; margin-bottom: 10px; margin-top: 0;">${section.title}</h2>
               <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="content-text" style="font-size: 10pt; line-height: 1.6;">${section.content || ''}</div>
+            <div class="content-text" style="font-size: 10pt; line-height: 1.6; margin: 0; color: ${textColor};">${section.content || ''}</div>
           </div>
         `;
 
       case 'deliverables':
         const deliverables = section.deliverableItems || [];
         return `
-          <div class="section-wrapper">
-            <div class="section-header">
-              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+          <div class="section-wrapper" style="margin: 0; padding: 30px 50px; background-color: ${bgColor};">
+            <div class="section-header" style="margin-bottom: 15px;">
+              <h2 style="color: ${headingColor}; font-size: 18pt; margin-bottom: 8px; margin-top: 0;">${section.title}</h2>
               <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div class="deliverables-list">
-              ${deliverables.slice(0, 2).map((phase: any, index: number) => `
+            <div class="deliverables-list" style="margin-top: 10px; margin-bottom: 0;">
+              ${deliverables.map((phase: any, index: number) => `
                 <div class="deliverable-phase" style="margin-bottom: 12px;">
-                  <h3 style="color: ${secondaryColor}; font-size: 11pt; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                  <h3 style="color: ${headingColor}; font-size: 11pt; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                     <span class="phase-number" style="background: ${primaryColor}; width: 22px; height: 22px; font-size: 10pt;">${index + 1}</span>
                     ${phase.title}
                   </h3>
                   <ul style="list-style: none; padding-left: 30px;">
-                    ${phase.items.slice(0, 3).map((item: string) => `
-                      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; color: #555; font-size: 8.5pt; line-height: 1.4;">
+                    ${phase.items.map((item: string) => `
+                      <li style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; color: ${textColor}; font-size: 8.5pt; line-height: 1.4;">
                         <span class="bullet" style="background: ${primaryColor}; width: 4px; height: 4px; margin-top: 5px;"></span>
                         ${item}
                       </li>
@@ -472,120 +492,81 @@ function generateProposalHTML(proposal: any): string {
       case 'timeline':
         const timelineItems = section.timelineItems || [];
         return `
-          <div class="section-wrapper">
-            <div class="section-header">
-              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+          <div class="section-wrapper" style="margin: 0; padding: 30px 50px; background-color: ${bgColor};">
+            <div class="section-header" style="margin-bottom: 15px;">
+              <h2 style="color: ${headingColor}; font-size: 18pt; margin-bottom: 8px; margin-top: 0;">${section.title}</h2>
               <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
-            <div style="margin-top: 12px; padding-bottom: 10px;">
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                ${timelineItems.slice(0, 2).map((item: any, index: number) => `
-                  <div style="position: relative; display: flex; gap: 12px; align-items: flex-start;">
-                    <!-- Timeline Indicator Column -->
-                    <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 2px;">
-                      <!-- Period Badge -->
+            <div style="margin-top: 24px; padding-bottom: 0;">
+              <div style="display: flex; flex-direction: column; gap: 0;">
+                ${timelineItems.slice(0, 5).map((item: any, index: number) => `
+                  <div style="display: flex; gap: 16px; position: relative;">
+                    <!-- Timeline Line & Dot -->
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 40px; position: relative;">
+                      <!-- Dot/Circle -->
                       <div style="
-                        background-color: ${primaryColor};
-                        color: white;
-                        font-size: 7.5pt;
-                        font-weight: 700;
-                        padding: 4px 10px;
-                        border-radius: 15px;
-                        white-space: nowrap;
-                        box-shadow: 0 2px 6px ${primaryColor}25;
-                        margin-bottom: 6px;
-                        min-width: 70px;
-                        text-align: center;
-                      ">
-                        ${item.period}
-                      </div>
-
-                      <!-- Dot -->
-                      <div style="
-                        width: 12px;
-                        height: 12px;
+                        width: 16px;
+                        height: 16px;
                         border-radius: 50%;
-                        background-color: white;
-                        border: 2.5px solid ${primaryColor};
-                        box-shadow: 0 0 0 3px ${primaryColor}12;
+                        background-color: ${primaryColor};
+                        border: 3px solid ${bgColor};
+                        box-shadow: 0 0 0 2px ${primaryColor};
                         z-index: 2;
+                        margin-top: 4px;
+                        flex-shrink: 0;
                       "></div>
-
-                      <!-- Connecting Line (except last item) -->
-                      ${index < timelineItems.slice(0, 2).length - 1 ? `
+                      <!-- Vertical Line -->
+                      ${index < timelineItems.slice(0, 5).length - 1 ? `
                         <div style="
-                          width: 2px;
-                          flex-grow: 1;
-                          min-height: 20px;
-                          background: linear-gradient(180deg, ${primaryColor} 0%, ${primaryColor}25 100%);
-                          margin-top: 3px;
+                          width: 3px;
+                          flex: 1;
+                          background-color: ${primaryColor}40;
+                          margin-top: 4px;
+                          margin-bottom: 4px;
+                          min-height: 40px;
                         "></div>
                       ` : ''}
                     </div>
 
-                    <!-- Content Card -->
+                    <!-- Content -->
                     <div style="
                       flex: 1;
-                      background-color: ${primaryColor}04;
-                      border: 1px solid ${primaryColor}18;
+                      padding: 14px 16px;
+                      background-color: ${isDarkBg ? '#1a1a1a' : `${primaryColor}06`};
+                      border: 1px solid ${primaryColor}12;
                       border-radius: 8px;
-                      padding: 10px 12px;
-                      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-                      position: relative;
-                      overflow: hidden;
+                      margin-bottom: 12px;
                     ">
+                      <!-- Period -->
+                      <div style="
+                        font-size: 8.5pt;
+                        font-weight: 700;
+                        color: ${primaryColor};
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 6px;
+                      ">
+                        ${item.period}
+                      </div>
                       <!-- Title -->
                       <h4 style="
-                        font-size: 10.5pt;
+                        font-size: 12pt;
                         font-weight: 700;
-                        color: ${secondaryColor};
-                        margin-bottom: 4px;
-                        line-height: 1.2;
+                        color: ${headingColor};
+                        margin-bottom: 5px;
+                        line-height: 1.3;
                       ">
                         ${item.title}
                       </h4>
-
                       <!-- Description -->
                       <p style="
-                        font-size: 8.5pt;
-                        color: #666;
-                        line-height: 1.4;
-                        margin-bottom: ${item.items && item.items.length > 0 ? '6px' : '0'};
+                        font-size: 10pt;
+                        color: ${isDarkBg ? '#cccccc' : '#666'};
+                        line-height: 1.6;
+                        margin-bottom: 0;
                       ">
                         ${item.description}
                       </p>
-
-                      <!-- Sub-items -->
-                      ${item.items && item.items.length > 0 ? `
-                        <div style="
-                          display: grid;
-                          grid-template-columns: repeat(2, 1fr);
-                          gap: 3px 10px;
-                          margin-top: 6px;
-                          padding-top: 6px;
-                          border-top: 1px solid ${primaryColor}12;
-                        ">
-                          ${item.items.slice(0, 2).map((subItem: string) => `
-                            <div style="display: flex; align-items: flex-start; gap: 5px;">
-                              <div style="
-                                width: 4px;
-                                height: 4px;
-                                border-radius: 50%;
-                                background-color: ${primaryColor};
-                                margin-top: 3px;
-                                flex-shrink: 0;
-                              "></div>
-                              <span style="
-                                font-size: 7.5pt;
-                                color: #555;
-                                line-height: 1.3;
-                              ">
-                                ${subItem}
-                              </span>
-                            </div>
-                          `).join('')}
-                        </div>
-                      ` : ''}
                     </div>
                   </div>
                 `).join('')}
@@ -596,6 +577,13 @@ function generateProposalHTML(proposal: any): string {
 
       case 'why-choose-us':
         const features = section.featureItems || [];
+        // Use default stats if not provided
+        const stats = section.statItems || [
+          { id: '1', value: "500+", label: "Projects Delivered" },
+          { id: '2', value: "98%", label: "Client Satisfaction" },
+          { id: '3', value: "10+", label: "Years Experience" },
+          { id: '4', value: "24/7", label: "Support Available" },
+        ];
 
         // Check if circular logo is enabled
         if (section.useCircularLogo) {
@@ -606,16 +594,70 @@ function generateProposalHTML(proposal: any): string {
           const circularLogoSVG = generateCircularLogoSVG(centerText, centerCompanyName, primaryColor);
 
           return `
-            <div class="page content-page" style="padding: 40px 50px; background: white; min-height: 297mm; max-height: 297mm;">
-              <div style="margin-bottom: 0;">
-                <h2 style="color: ${secondaryColor}; font-size: 22pt; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px;">
+            <div class="page content-page" style="padding: 40px 50px; background: ${bgColor}; min-height: 297mm; max-height: 297mm;">
+              <div style="margin-bottom: 35px;">
+                <h2 style="color: ${headingColor}; font-size: 22pt; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px;">
                   ${section.title}
                 </h2>
-                <div style="width: 60px; height: 3px; background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); border-radius: 2px; margin-bottom: 0;"></div>
+                <div style="width: 60px; height: 3px; background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); border-radius: 2px;"></div>
               </div>
-              <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+
+              <div style="display: flex; justify-content: center; align-items: center; margin: 40px 0 60px 0;">
                 ${circularLogoSVG}
               </div>
+
+              ${stats.length > 0 ? `
+                <div style="margin-top: -80px; padding-top: 0; padding-bottom: 10px;">
+                  <div style="
+                    background-color: ${primaryColor}08;
+                    border-radius: 12px;
+                    padding: 24px 32px;
+                    border: 1px solid ${primaryColor}15;
+                  ">
+                    <h3 style="
+                      font-size: 11pt;
+                      font-weight: 700;
+                      text-align: center;
+                      margin-bottom: 20px;
+                      letter-spacing: 2px;
+                      text-transform: uppercase;
+                      color: ${headingColor};
+                      opacity: 0.85;
+                    ">
+                      By The Numbers
+                    </h3>
+                    <div style="
+                      display: grid;
+                      grid-template-columns: repeat(${Math.min(stats.length, 4)}, 1fr);
+                      gap: 32px;
+                    ">
+                      ${stats.map((stat: any) => `
+                        <div style="text-align: center; padding: 8px 0;">
+                          <div style="
+                            font-size: 24pt;
+                            font-weight: 700;
+                            line-height: 1;
+                            color: ${primaryColor};
+                            margin-bottom: 8px;
+                          ">
+                            ${stat.value}
+                          </div>
+                          <p style="
+                            color: #777;
+                            font-size: 8pt;
+                            line-height: 1.4;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            margin: 0;
+                          ">
+                            ${stat.label}
+                          </p>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `;
         }
@@ -644,38 +686,38 @@ function generateProposalHTML(proposal: any): string {
         const terms = section.termItems || [];
         const tableRows = section.pricingTableRows || [];
         return `
-          <div class="section-wrapper">
-            <div class="section-header">
-              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+          <div class="section-wrapper" style="margin: 0; padding: 30px 50px; background-color: ${bgColor};">
+            <div class="section-header" style="margin-bottom: 15px;">
+              <h2 style="color: ${headingColor}; font-size: 18pt; margin-bottom: 8px; margin-top: 0;">${section.title}</h2>
               <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
             ${tableRows.length > 0 ? `
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1.5px solid ${primaryColor};">
                 <thead>
                   <tr style="background-color: ${primaryColor}12; border-bottom: 1.5px solid ${primaryColor};">
-                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}35; width: 28%;">
+                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${headingColor}; border-right: 1px solid ${primaryColor}35; width: 28%;">
                       ${section.tableHeaders?.service || 'Service Component'}
                     </th>
-                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}35; width: 48%;">
+                    <th style="padding: 8px 10px; text-align: left; font-size: 9pt; font-weight: 600; color: ${headingColor}; border-right: 1px solid ${primaryColor}35; width: 48%;">
                       ${section.tableHeaders?.description || 'What You Get'}
                     </th>
-                    <th style="padding: 8px 10px; text-align: center; font-size: 9pt; font-weight: 600; color: ${secondaryColor}; width: 24%;">
+                    <th style="padding: 8px 10px; text-align: center; font-size: 9pt; font-weight: 600; color: ${headingColor}; width: 24%;">
                       ${section.tableHeaders?.investment || 'Investment'}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${tableRows.slice(0, 6).map((row: any, index: number) => {
-                    const isTotal = index === tableRows.slice(0, 6).length - 1 && row.service.toLowerCase().includes('total');
+                  ${tableRows.map((row: any, index: number) => {
+                    const isTotal = index === tableRows.length - 1 && row.service.toLowerCase().includes('total');
                     return `
                       <tr style="background-color: ${isTotal ? `${primaryColor}06` : 'transparent'}; border-bottom: 1px solid ${primaryColor}20;">
-                        <td style="padding: 7px 10px; font-size: ${isTotal ? '10pt' : '8.5pt'}; font-weight: ${isTotal ? '700' : '500'}; color: ${secondaryColor}; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
+                        <td style="padding: 7px 10px; font-size: ${isTotal ? '10pt' : '8.5pt'}; font-weight: ${isTotal ? '700' : '500'}; color: ${headingColor}; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
                           ${row.service}
                         </td>
-                        <td style="padding: 7px 10px; font-size: 8.5pt; color: #555; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
+                        <td style="padding: 7px 10px; font-size: 8.5pt; color: ${textColor}; border-right: 1px solid ${primaryColor}20; line-height: 1.3;">
                           ${row.description}
                         </td>
-                        <td style="padding: 7px 10px; text-align: center; font-size: ${isTotal ? '12pt' : '9pt'}; font-weight: ${isTotal ? '700' : '600'}; color: ${isTotal ? primaryColor : '#555'};">
+                        <td style="padding: 7px 10px; text-align: center; font-size: ${isTotal ? '12pt' : '9pt'}; font-weight: ${isTotal ? '700' : '600'}; color: ${isTotal ? primaryColor : textColor};">
                           ${row.investment}
                         </td>
                       </tr>
@@ -684,7 +726,7 @@ function generateProposalHTML(proposal: any): string {
                 </tbody>
               </table>
               ${section.paymentTerms ? `
-                <div style="border-left: 2.5px solid ${primaryColor}; padding-left: 10px; margin-top: 10px; color: #666; font-size: 8.5pt; font-style: italic; line-height: 1.4;">
+                <div style="border-left: 2.5px solid ${primaryColor}; padding-left: 10px; margin-top: 10px; color: ${isDarkBg ? '#cccccc' : '#666'}; font-size: 8.5pt; font-style: italic; line-height: 1.4;">
                   ${section.paymentTerms}
                 </div>
               ` : ''}
@@ -692,8 +734,8 @@ function generateProposalHTML(proposal: any): string {
               <div class="terms-list">
                 ${terms.map((term: any) => `
                   <div class="term-item">
-                    <h4 style="color: ${secondaryColor};">${term.title}</h4>
-                    <div class="term-content" style="border-color: ${primaryColor}40;">
+                    <h4 style="color: ${headingColor};">${term.title}</h4>
+                    <div class="term-content" style="border-color: ${primaryColor}40; color: ${textColor};">
                       ${term.content.replace(/\n/g, '<br>')}
                     </div>
                   </div>
@@ -713,9 +755,9 @@ function generateProposalHTML(proposal: any): string {
         const steps = section.nextStepItems || [];
         const requirements = section.items || [];
         return `
-          <div class="section-wrapper">
-            <div class="section-header">
-              <h2 style="color: ${secondaryColor}; font-size: 18pt; margin-bottom: 8px;">${section.title}</h2>
+          <div class="section-wrapper" style="margin: 0; padding: 30px 50px; background-color: ${bgColor};">
+            <div class="section-header" style="margin-bottom: 15px;">
+              <h2 style="color: ${headingColor}; font-size: 18pt; margin-bottom: 8px; margin-top: 0;">${section.title}</h2>
               <div class="header-line" style="background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); width: 50px; height: 3px;"></div>
             </div>
             ${steps.length > 0 ? `
@@ -725,14 +767,14 @@ function generateProposalHTML(proposal: any): string {
                 gap: 8px;
                 margin-top: 12px;
               ">
-                ${steps.slice(0, 5).map((step: any, index: number) => {
-                  const isLast = index === steps.slice(0, 5).length - 1;
+                ${steps.map((step: any, index: number) => {
+                  const isLast = index === steps.length - 1;
                   return `
                     <div style="
                       position: relative;
                       padding: 12px 8px;
                       border-radius: 8px;
-                      background-color: ${isLast ? primaryColor : '#fff'};
+                      background-color: ${isLast ? primaryColor : (isDarkBg ? '#1a1a1a' : '#fff')};
                       border: ${isLast ? 'none' : `1.5px solid ${primaryColor}12`};
                       box-shadow: ${isLast ? `0 3px 12px ${primaryColor}30` : '0 1px 4px rgba(0,0,0,0.03)'};
                       text-align: center;
@@ -759,7 +801,7 @@ function generateProposalHTML(proposal: any): string {
                       <h4 style="
                         font-size: 8.5pt;
                         font-weight: 700;
-                        color: ${isLast ? 'white' : secondaryColor};
+                        color: ${isLast ? 'white' : headingColor};
                         line-height: 1.2;
                         text-transform: uppercase;
                         letter-spacing: 0.2px;
@@ -773,7 +815,7 @@ function generateProposalHTML(proposal: any): string {
                       <!-- Step Description -->
                       <p style="
                         font-size: 7pt;
-                        color: ${isLast ? 'rgba(255,255,255,0.9)' : '#666'};
+                        color: ${isLast ? 'rgba(255,255,255,0.9)' : (isDarkBg ? '#cccccc' : '#666')};
                         line-height: 1.3;
                         margin: 0;
                         padding: 0 2px;
@@ -805,26 +847,62 @@ function generateProposalHTML(proposal: any): string {
         `;
 
       case 'contact':
+        const contactTextColor = isDarkBg ? '#ffffff' : secondaryColor;
+        const contactLogoFilter = isDarkBg ? 'brightness(0) invert(1)' : 'none';
+
         return `
-          <div class="page contact-page" style="background: linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%);">
-            <div class="section-header light">
-              <h2>${section.title}</h2>
-              <div class="header-line" style="background: ${accentColor};"></div>
-            </div>
-            <p class="contact-intro">Our team is ready to bring your vision to life. We're excited about the opportunity to work together.</p>
-            <div class="contact-grid">
-              <div class="contact-details">
-                <p class="contact-name">${section.contactName || ''}</p>
-                <p class="contact-title">${section.contactTitle || ''}</p>
-                <p class="contact-info">${section.contactPhone || ''}</p>
-                <p class="contact-info">${section.contactEmail || ''}</p>
+          <div class="page" style="background: ${bgColor}; position: relative; overflow: hidden; min-height: 297mm; max-height: 297mm; padding: 0;">
+            <!-- Gradient Envelope Shape with Sharp Corner -->
+            <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 50%;" preserveAspectRatio="none" viewBox="0 0 1200 600">
+              <defs>
+                <linearGradient id="contactGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="${primaryColor}" />
+                  <stop offset="35%" stop-color="${primaryColor}" />
+                  <stop offset="100%" stop-color="${secondaryColor}" />
+                </linearGradient>
+                <linearGradient id="contactGradient2" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.25" />
+                  <stop offset="100%" stop-color="${primaryColor}" stop-opacity="0.05" />
+                </linearGradient>
+              </defs>
+              <path d="M 0 0 L 1200 0 L 1200 500 L 300 600 L 0 480 Z" fill="url(#contactGradient)" />
+              <path d="M 0 0 L 1200 0 L 1200 500 L 300 600 L 0 480 Z" fill="url(#contactGradient2)" />
+            </svg>
+
+            <!-- Content - Bottom Left -->
+            <div style="position: absolute; bottom: 80px; left: 80px; z-index: 2;">
+              <!-- Logo -->
+              <div style="margin-bottom: 20px;">
+                ${logoUrl ? `
+                  <img src="${logoUrl}" alt="Company Logo" style="width: 75px; height: 75px; object-fit: contain; filter: ${contactLogoFilter};" />
+                ` : `
+                  <svg width="75" height="75" viewBox="0 0 75 75" fill="none">
+                    <rect x="5" y="5" width="28" height="28" fill="${contactTextColor}" rx="3"/>
+                    <rect x="42" y="5" width="28" height="28" fill="${contactTextColor}" rx="3"/>
+                    <rect x="5" y="42" width="28" height="28" fill="${contactTextColor}" rx="3"/>
+                    <rect x="42" y="42" width="28" height="28" fill="${contactTextColor}" rx="3"/>
+                  </svg>
+                `}
               </div>
-              <div class="contact-closing">
-                <p class="closing-message">${section.closingMessage || ''}</p>
-                ${logoUrl ? `<img src="${logoUrl}" class="contact-logo" alt="Logo" />` : ''}
+
+              <!-- Company Name -->
+              <h1 style="color: ${contactTextColor}; font-size: 42pt; font-weight: 700; line-height: 1.2; margin-bottom: 20px; letter-spacing: -0.8px;">
+                ${companyName || 'Your Company'}
+              </h1>
+
+              <!-- Separator Line -->
+              <div style="width: 320px; height: 3px; background: linear-gradient(90deg, ${primaryColor}, ${accentColor}); margin-bottom: 24px;"></div>
+
+              <!-- Contact Info -->
+              <div>
+                <p style="color: ${contactTextColor}; font-size: 15pt; font-weight: 400; margin-bottom: 6px; letter-spacing: 0.2px;">
+                  ${section.contactEmail || 'www.yourwebsite.com'}
+                </p>
+                <p style="color: ${contactTextColor}; font-size: 15pt; font-weight: 400; letter-spacing: 0.2px;">
+                  ${section.contactPhone || '@yourhandle'}
+                </p>
               </div>
             </div>
-            <div class="accent-bar bottom" style="background: ${accentColor};"></div>
           </div>
         `;
 
@@ -850,20 +928,27 @@ function generateProposalHTML(proposal: any): string {
           font-family: ${getFontStack()};
           font-size: 11pt;
           line-height: 1.6;
-          color: #333;
+          color: ${textColor};
         }
         
         .page {
           width: 210mm;
           min-height: 297mm;
-          padding: 50px 60px;
+          max-height: 297mm;
+          padding: 50px 60px 70px 60px;
           page-break-after: always;
           position: relative;
+          page-break-inside: avoid;
+          box-sizing: border-box;
         }
 
-        /* Multi-section pages don't need padding on the page itself */
+        /* Multi-section pages use flex layout */
         .page.multi-section {
-          padding: 0;
+          padding: 0 0 70px 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: stretch;
         }
 
         .page:last-child {
@@ -955,21 +1040,16 @@ function generateProposalHTML(proposal: any): string {
         
         /* Content Pages */
         .content-page {
-          background: white;
+          background: ${bgColor};
         }
 
         /* Section Wrapper - for grouped sections */
         .section-wrapper {
-          background: white;
+          background: ${bgColor};
           padding: 30px 50px;
-          flex: 1;
-          max-height: 148mm;
-          overflow: hidden;
           box-sizing: border-box;
-        }
-
-        .section-wrapper:not(:last-child) {
-          border-bottom: 1px solid #f0f0f0;
+          page-break-inside: avoid;
+          flex: 0 0 auto;
         }
 
         .section-header {
@@ -993,7 +1073,7 @@ function generateProposalHTML(proposal: any): string {
         }
 
         .content-text {
-          color: #555;
+          color: ${textColor};
           font-size: 10pt;
           line-height: 1.6;
           white-space: pre-wrap;
@@ -1006,6 +1086,7 @@ function generateProposalHTML(proposal: any): string {
 
         .deliverable-phase {
           margin-bottom: 20px;
+          page-break-inside: avoid;
         }
 
         .deliverable-phase h3 {
@@ -1039,7 +1120,7 @@ function generateProposalHTML(proposal: any): string {
           align-items: flex-start;
           gap: 10px;
           margin-bottom: 6px;
-          color: #555;
+          color: ${textColor};
           font-size: 9pt;
         }
 
@@ -1069,6 +1150,7 @@ function generateProposalHTML(proposal: any): string {
           position: relative;
           margin-bottom: 30px;
           padding-left: 30px;
+          page-break-inside: avoid;
         }
         
         .timeline-dot {
@@ -1103,20 +1185,20 @@ function generateProposalHTML(proposal: any): string {
         }
         
         .timeline-item p {
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
           font-size: 10pt;
         }
-        
+
         .timeline-subitems {
           list-style: none;
           margin-top: 10px;
         }
-        
+
         .timeline-subitems li {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
           font-size: 9pt;
           margin-bottom: 4px;
         }
@@ -1143,6 +1225,7 @@ function generateProposalHTML(proposal: any): string {
           display: flex;
           align-items: flex-start;
           gap: 15px;
+          page-break-inside: avoid;
         }
         
         .feature-number {
@@ -1176,6 +1259,7 @@ function generateProposalHTML(proposal: any): string {
         
         .term-item {
           margin-bottom: 20px;
+          page-break-inside: avoid;
         }
         
         .term-item h4 {
@@ -1185,23 +1269,23 @@ function generateProposalHTML(proposal: any): string {
         }
         
         .term-content {
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
           font-size: 10pt;
           padding-left: 15px;
           border-left: 2px solid;
         }
-        
+
         .total-box {
           margin-top: 30px;
           padding: 20px;
           border-radius: 8px;
           text-align: center;
         }
-        
+
         .total-label {
           display: block;
           font-size: 10pt;
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
         }
         
         .total-amount {
@@ -1244,20 +1328,20 @@ function generateProposalHTML(proposal: any): string {
         }
         
         .step-content {
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
           font-size: 10pt;
         }
-        
+
         .requirements-section ul {
           list-style: none;
         }
-        
+
         .requirements-section li {
           display: flex;
           align-items: flex-start;
           gap: 12px;
           margin-bottom: 8px;
-          color: #666;
+          color: ${isDarkBg ? '#cccccc' : '#666'};
           font-size: 10pt;
         }
         
@@ -1316,7 +1400,7 @@ function generateProposalHTML(proposal: any): string {
           object-fit: contain;
           opacity: 0.8;
         }
-        
+
         @media print {
           .page {
             page-break-after: always;
@@ -1329,13 +1413,23 @@ function generateProposalHTML(proposal: any): string {
     </head>
     <body>
       ${pages.map(pageSections => {
-        // If page has only one section, render it directly
+        // If page has only one section
         if (pageSections.length === 1) {
-          return renderSection(pageSections[0]);
+          const section = pageSections[0];
+          // Special sections render as full pages with their own styling
+          if (section.type === 'cover' || section.type === 'contact' || section.type === 'why-choose-us') {
+            return renderSection(section);
+          }
+          // Regular single sections get wrapped in a content page
+          return `
+            <div class="page content-page" style="background: ${bgColor};">
+              ${renderSection(section)}
+            </div>
+          `;
         }
         // If page has multiple sections, wrap them in a multi-section page
         return `
-          <div class="page content-page multi-section" style="display: flex; flex-direction: column; background: white;">
+          <div class="page content-page multi-section" style="background: ${bgColor};">
             ${pageSections.map(renderSection).join('')}
           </div>
         `;

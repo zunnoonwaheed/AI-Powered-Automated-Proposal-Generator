@@ -187,13 +187,13 @@ function CoverSection({
   );
 }
 
-function SectionHeader({ title, settings }: { title: string; settings: DesignSettings }) {
+function SectionHeader({ title, settings, isDarkBg }: { title: string; settings: DesignSettings; isDarkBg?: boolean }) {
   return (
     <div className="mb-6">
       <h2
         className="font-bold mb-3"
         style={{
-          color: settings.secondaryColor,
+          color: isDarkBg ? '#ffffff' : settings.secondaryColor,
           fontSize: '24px',
           letterSpacing: '-0.5px'
         }}
@@ -213,21 +213,25 @@ function SectionHeader({ title, settings }: { title: string; settings: DesignSet
 }
 
 function ContentSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
+  const textColor = isDarkBg ? '#ffffff' : '#555';
+
   return (
     <div
-      className="bg-white"
       style={{
+        backgroundColor: bgColor,
         padding: '35px 50px',
         maxHeight: '148mm',
         minHeight: 'auto',
         overflow: 'hidden'
       }}
     >
-      <SectionHeader title={section.title} settings={settings} />
+      <SectionHeader title={section.title} settings={settings} isDarkBg={isDarkBg} />
       <div
         className="leading-relaxed whitespace-pre-wrap"
         style={{
-          color: '#555',
+          color: textColor,
           fontSize: '11px',
           lineHeight: 1.7,
           maxWidth: '95%',
@@ -242,25 +246,28 @@ function ContentSection({ section, settings }: { section: ProposalSection; setti
 
 function DeliverablesSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
   const items = section.deliverableItems || [];
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
+  const textColor = isDarkBg ? '#ffffff' : '#555';
 
   return (
     <div
-      className="bg-white"
       style={{
+        backgroundColor: bgColor,
         padding: '35px 50px',
         maxHeight: '148mm',
         minHeight: 'auto',
         overflow: 'hidden'
       }}
     >
-      <SectionHeader title={section.title} settings={settings} />
+      <SectionHeader title={section.title} settings={settings} isDarkBg={isDarkBg} />
       <div className="space-y-6" style={{ paddingBottom: '20px' }}>
         {items.slice(0, 4).map((phase, index) => (
           <div key={phase.id}>
             <h3
               className="font-semibold mb-2 flex items-center gap-3"
               style={{
-                color: settings.secondaryColor,
+                color: isDarkBg ? '#ffffff' : settings.secondaryColor,
                 fontSize: '13px'
               }}
             >
@@ -282,7 +289,7 @@ function DeliverablesSection({ section, settings }: { section: ProposalSection; 
                 <li
                   key={i}
                   className="flex items-start gap-2.5"
-                  style={{ color: '#555', fontSize: '10px', lineHeight: 1.5 }}
+                  style={{ color: textColor, fontSize: '10px', lineHeight: 1.5 }}
                 >
                   <span
                     className="rounded-full flex-shrink-0"
@@ -306,183 +313,110 @@ function DeliverablesSection({ section, settings }: { section: ProposalSection; 
 
 function TimelineSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
   const items = section.timelineItems || [];
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
 
   return (
     <div
-      className="bg-white"
       style={{
+        backgroundColor: bgColor,
         padding: '35px 50px',
         maxHeight: '148mm',
         minHeight: 'auto',
         overflow: 'hidden'
       }}
     >
-      <SectionHeader title={section.title} settings={settings} />
+      <SectionHeader title={section.title} settings={settings} isDarkBg={isDarkBg} />
 
-      {/* Modern Card-Based Timeline Layout */}
-      <div style={{ marginTop: '20px', paddingBottom: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Proper Timeline with Vertical Line */}
+      <div style={{ marginTop: '24px', paddingBottom: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {items.slice(0, 5).map((item, index) => (
             <div
               key={item.id}
               style={{
-                position: 'relative',
                 display: 'flex',
                 gap: '16px',
-                alignItems: 'flex-start'
+                position: 'relative'
               }}
             >
-              {/* Timeline Indicator Column */}
+              {/* Timeline Line & Dot */}
               <div
                 style={{
-                  position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  paddingTop: '4px'
+                  width: '40px',
+                  position: 'relative'
                 }}
               >
-                {/* Period Badge */}
+                {/* Dot/Circle */}
                 <div
                   style={{
-                    backgroundColor: settings.primaryColor,
-                    color: '#fff',
-                    fontSize: '8.5px',
-                    fontWeight: '700',
-                    padding: '5px 12px',
-                    borderRadius: '20px',
-                    whiteSpace: 'nowrap',
-                    boxShadow: `0 2px 8px ${settings.primaryColor}30`,
-                    marginBottom: '8px',
-                    minWidth: '85px',
-                    textAlign: 'center'
-                  }}
-                >
-                  {item.period}
-                </div>
-
-                {/* Dot */}
-                <div
-                  style={{
-                    width: '14px',
-                    height: '14px',
+                    width: '16px',
+                    height: '16px',
                     borderRadius: '50%',
-                    backgroundColor: '#fff',
-                    border: `3px solid ${settings.primaryColor}`,
-                    boxShadow: `0 0 0 4px ${settings.primaryColor}15`,
-                    zIndex: 2
+                    backgroundColor: settings.primaryColor,
+                    border: `3px solid ${bgColor}`,
+                    boxShadow: `0 0 0 2px ${settings.primaryColor}`,
+                    zIndex: 2,
+                    marginTop: '4px',
+                    flexShrink: 0
                   }}
                 />
-
-                {/* Connecting Line (except last item) */}
+                {/* Vertical Line */}
                 {index < items.slice(0, 5).length - 1 && (
                   <div
                     style={{
-                      width: '2px',
-                      flexGrow: 1,
-                      minHeight: '30px',
-                      background: `linear-gradient(180deg, ${settings.primaryColor} 0%, ${settings.primaryColor}30 100%)`,
-                      marginTop: '4px'
+                      width: '3px',
+                      flex: 1,
+                      backgroundColor: `${settings.primaryColor}40`,
+                      marginTop: '4px',
+                      marginBottom: '4px',
+                      minHeight: '40px'
                     }}
                   />
                 )}
               </div>
 
-              {/* Content Card */}
-              <div
-                style={{
-                  flex: 1,
-                  backgroundColor: `${settings.primaryColor}05`,
-                  border: `1.5px solid ${settings.primaryColor}20`,
-                  borderRadius: '10px',
-                  padding: '14px 16px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Accent Corner */}
+              {/* Content */}
+              <div style={{ flex: 1, paddingBottom: '18px' }}>
+                {/* Period */}
                 <div
                   style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: '40px',
-                    height: '40px',
-                    background: `linear-gradient(135deg, transparent 50%, ${settings.primaryColor}12 50%)`,
-                    borderBottomLeftRadius: '100%'
+                    fontSize: '8.5px',
+                    fontWeight: '700',
+                    color: settings.primaryColor,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '6px'
                   }}
-                />
-
+                >
+                  {item.period}
+                </div>
                 {/* Title */}
                 <h4
                   style={{
                     fontSize: '12px',
                     fontWeight: '700',
-                    color: settings.secondaryColor,
-                    marginBottom: '6px',
+                    color: isDarkBg ? '#ffffff' : settings.secondaryColor,
+                    marginBottom: '5px',
                     lineHeight: 1.3
                   }}
                 >
                   {item.title}
                 </h4>
-
                 {/* Description */}
                 <p
                   style={{
                     fontSize: '10px',
-                    color: '#666',
+                    color: isDarkBg ? '#cccccc' : '#666',
                     lineHeight: 1.6,
-                    marginBottom: item.items && item.items.length > 0 ? '8px' : '0'
+                    marginBottom: '0'
                   }}
                 >
                   {item.description}
                 </p>
-
-                {/* Sub-items */}
-                {item.items && item.items.length > 0 && (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: '4px 12px',
-                      marginTop: '8px',
-                      paddingTop: '8px',
-                      borderTop: `1px solid ${settings.primaryColor}15`
-                    }}
-                  >
-                    {item.items.map((subItem, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '6px'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '5px',
-                            height: '5px',
-                            borderRadius: '50%',
-                            backgroundColor: settings.primaryColor,
-                            marginTop: '4px',
-                            flexShrink: 0
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: '9px',
-                            color: '#555',
-                            lineHeight: 1.4
-                          }}
-                        >
-                          {subItem}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -494,6 +428,14 @@ function TimelineSection({ section, settings }: { section: ProposalSection; sett
 
 function WhyChooseUsSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
   const items = section.featureItems || [];
+
+  // Default stats if none provided
+  const stats = section.statItems || [
+    { id: "stat-1", value: "500+", label: "Projects Delivered" },
+    { id: "stat-2", value: "98%", label: "Client Satisfaction" },
+    { id: "stat-3", value: "10+", label: "Years Experience" },
+    { id: "stat-4", value: "24/7", label: "Support Available" },
+  ];
 
   // Check if circular logo is enabled
   if (section.useCircularLogo) {
@@ -537,11 +479,11 @@ function WhyChooseUsSection({ section, settings }: { section: ProposalSection; s
           </div>
         </div>
         <div
-          className="flex justify-center items-start flex-1"
+          className="flex justify-center items-center flex-1"
           style={{
             width: '100%',
             overflow: 'visible',
-            marginTop: '0px',
+            marginTop: '-20px',
             paddingTop: '0px'
           }}
         >
@@ -550,8 +492,71 @@ function WhyChooseUsSection({ section, settings }: { section: ProposalSection; s
               centerText={centerText}
               companyName={companyName}
               settings={settings}
-              size={680}
+              size={600}
             />
+          </div>
+        </div>
+
+        {/* By The Numbers Section - Below Circular Logo */}
+        <div
+          style={{
+            marginTop: '-150px',
+            paddingTop: '0px',
+            paddingBottom: '10px'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: `${settings.primaryColor}08`,
+              borderRadius: '12px',
+              padding: '20px 28px',
+              border: `1px solid ${settings.primaryColor}15`
+            }}
+          >
+            <h3
+              className="font-bold text-center mb-4"
+              style={{
+                fontSize: '11px',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                color: settings.secondaryColor,
+                opacity: 0.85
+              }}
+            >
+              By The Numbers
+            </h3>
+            <div
+              className="grid gap-6"
+              style={{
+                gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)`
+              }}
+            >
+              {stats.map((stat) => (
+                <div key={stat.id} className="text-center">
+                  <div
+                    className="font-bold mb-1"
+                    style={{
+                      fontSize: '24px',
+                      lineHeight: 1,
+                      color: settings.primaryColor
+                    }}
+                  >
+                    {stat.value}
+                  </div>
+                  <p
+                    style={{
+                      color: '#777',
+                      fontSize: '8px',
+                      lineHeight: 1.3,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -656,6 +661,55 @@ function WhyChooseUsSection({ section, settings }: { section: ProposalSection; s
           </div>
         ))}
       </div>
+
+      {/* By The Numbers Section - Always show if stats exist or use defaults */}
+      <div
+        style={{
+          marginTop: '30px',
+          paddingTop: '26px',
+          borderTop: '1px solid rgba(255,255,255,0.2)'
+        }}
+      >
+        <h3
+          className="text-white font-bold text-center mb-6"
+          style={{
+            fontSize: '14px',
+            letterSpacing: '2.5px',
+            textTransform: 'uppercase',
+            opacity: 0.95
+          }}
+        >
+          By The Numbers
+        </h3>
+        <div
+          className="grid gap-5"
+          style={{
+            gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)`
+          }}
+        >
+          {stats.map((stat) => (
+            <div key={stat.id} className="text-center">
+              <div
+                className="text-white font-bold mb-2"
+                style={{ fontSize: '28px', lineHeight: 1 }}
+              >
+                {stat.value}
+              </div>
+              <p
+                style={{
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: '9px',
+                  lineHeight: 1.4,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
+                }}
+              >
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -663,18 +717,20 @@ function WhyChooseUsSection({ section, settings }: { section: ProposalSection; s
 function TermsSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
   const items = section.termItems || [];
   const tableRows = section.pricingTableRows || [];
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
 
   return (
     <div
-      className="bg-white"
       style={{
+        backgroundColor: bgColor,
         padding: '35px 50px',
         maxHeight: '148mm',
         minHeight: 'auto',
         overflow: 'hidden'
       }}
     >
-      <SectionHeader title={section.title} settings={settings} />
+      <SectionHeader title={section.title} settings={settings} isDarkBg={isDarkBg} />
 
       {/* Table-based pricing */}
       {tableRows.length > 0 ? (
@@ -869,17 +925,19 @@ function TermsSection({ section, settings }: { section: ProposalSection; setting
 
 function NextStepsSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
   const steps = section.nextStepItems || [];
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
 
   return (
     <div
-      className="bg-white"
       style={{
+        backgroundColor: bgColor,
         padding: '35px 50px',
         minHeight: '148mm',
         overflow: 'visible'
       }}
     >
-      <SectionHeader title={section.title} settings={settings} />
+      <SectionHeader title={section.title} settings={settings} isDarkBg={isDarkBg} />
 
       {/* Modern Card Grid Layout - Perfect Alignment */}
       <div
@@ -900,7 +958,7 @@ function NextStepsSection({ section, settings }: { section: ProposalSection; set
                 position: 'relative',
                 padding: '16px 10px',
                 borderRadius: '10px',
-                backgroundColor: isLast ? `${settings.primaryColor}` : '#fff',
+                backgroundColor: isLast ? `${settings.primaryColor}` : (isDarkBg ? '#1a1a1a' : '#fff'),
                 border: isLast ? 'none' : `2px solid ${settings.primaryColor}15`,
                 boxShadow: isLast
                   ? `0 4px 16px ${settings.primaryColor}35`
@@ -944,7 +1002,7 @@ function NextStepsSection({ section, settings }: { section: ProposalSection; set
                   style={{
                     fontSize: '10px',
                     fontWeight: '700',
-                    color: isLast ? '#fff' : settings.secondaryColor,
+                    color: isLast ? '#fff' : (isDarkBg ? '#ffffff' : settings.secondaryColor),
                     lineHeight: 1.3,
                     textTransform: 'uppercase',
                     letterSpacing: '0.3px',
@@ -1004,98 +1062,137 @@ function NextStepsSection({ section, settings }: { section: ProposalSection; set
 }
 
 function ContactSection({ section, settings }: { section: ProposalSection; settings: DesignSettings }) {
+  // Determine if background is dark
+  const bgColor = settings.backgroundColor || '#ffffff';
+  const isDarkBg = bgColor.toLowerCase() === '#000000' || bgColor.toLowerCase() === '#000' || bgColor.toLowerCase() === 'black';
+  const textColor = isDarkBg ? '#ffffff' : settings.secondaryColor;
+  const logoFilter = isDarkBg ? 'brightness(0) invert(1)' : 'none';
+
   return (
-    <div 
-      className="relative flex flex-col"
+    <div
+      className="relative"
       style={{
-        background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%)`,
+        backgroundColor: bgColor,
         minHeight: '297mm',
-        padding: '60px',
+        maxHeight: '297mm',
+        overflow: 'hidden',
+        position: 'relative'
       }}
     >
-      <div className="mb-10">
-        <h2 
-          className="text-white font-bold mb-4"
-          style={{ fontSize: '28px', letterSpacing: '-0.5px' }}
-        >
-          {section.title}
-        </h2>
-        <div 
-          className="rounded-full"
-          style={{ 
-            width: '70px',
-            height: '4px',
-            backgroundColor: settings.accentColor
-          }}
+      {/* Gradient Envelope Shape - Inclined */}
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '50%'
+        }}
+        preserveAspectRatio="none"
+        viewBox="0 0 1200 600"
+      >
+        <defs>
+          <linearGradient id="contactGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={settings.primaryColor} />
+            <stop offset="35%" stopColor={settings.primaryColor} />
+            <stop offset="100%" stopColor={settings.secondaryColor} />
+          </linearGradient>
+          <linearGradient id="contactGradient2" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={settings.accentColor} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={settings.primaryColor} stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M 0 0 L 1200 0 L 1200 500 L 300 600 L 0 480 Z"
+          fill="url(#contactGradient)"
         />
-      </div>
+        <path
+          d="M 0 0 L 1200 0 L 1200 500 L 300 600 L 0 480 Z"
+          fill="url(#contactGradient2)"
+        />
+      </svg>
 
-      <p 
-        style={{ 
-          color: 'rgba(255,255,255,0.8)',
-          fontSize: '13px',
-          maxWidth: '450px',
-          lineHeight: 1.7,
-          marginBottom: '50px'
+      {/* Content - Bottom Left */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '80px',
+          left: '80px',
+          zIndex: 2
         }}
       >
-        Our team is ready to bring your vision to life. We're excited about the opportunity to work together and deliver exceptional results.
-      </p>
-
-      <div 
-        className="flex justify-between items-end flex-1"
-        style={{ paddingBottom: '50px' }}
-      >
-        <div>
-          <p 
-            className="text-white font-medium"
-            style={{ fontSize: '16px', marginBottom: '6px' }}
-          >
-            {section.contactName}
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>
-            {section.contactTitle}
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '12px' }}>
-            {section.contactPhone}
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>
-            {section.contactEmail}
-          </p>
-        </div>
-
-        <div className="text-right">
-          <p
-            className="text-white font-bold"
-            style={{
-              fontSize: '18px',
-              letterSpacing: '2px',
-              marginBottom: '20px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {section.closingMessage}
-          </p>
-          {settings.logoUrl && (
-            <img 
-              src={settings.logoUrl} 
-              alt="Company Logo" 
-              className="ml-auto"
-              style={{ 
-                maxWidth: '110px',
-                maxHeight: '55px',
+        {/* Logo */}
+        <div style={{ marginBottom: '20px' }}>
+          {settings.logoUrl ? (
+            <img
+              src={settings.logoUrl}
+              alt="Company Logo"
+              style={{
+                width: '75px',
+                height: '75px',
                 objectFit: 'contain',
-                opacity: 0.85
+                filter: logoFilter
               }}
             />
+          ) : (
+            <svg width="75" height="75" viewBox="0 0 75 75" fill="none">
+              <rect x="5" y="5" width="28" height="28" fill={textColor} rx="3"/>
+              <rect x="42" y="5" width="28" height="28" fill={textColor} rx="3"/>
+              <rect x="5" y="42" width="28" height="28" fill={textColor} rx="3"/>
+              <rect x="42" y="42" width="28" height="28" fill={textColor} rx="3"/>
+            </svg>
           )}
         </div>
-      </div>
 
-      <div 
-        className="absolute bottom-0 left-0 right-0"
-        style={{ height: '5px', backgroundColor: settings.accentColor }}
-      />
+        {/* Company Name */}
+        <h1
+          style={{
+            color: textColor,
+            fontSize: '42px',
+            fontWeight: '700',
+            lineHeight: 1.2,
+            marginBottom: '20px',
+            letterSpacing: '-0.8px'
+          }}
+        >
+          {settings.companyName || 'Your Company'}
+        </h1>
+
+        {/* Separator Line */}
+        <div
+          style={{
+            width: '320px',
+            height: '3px',
+            background: `linear-gradient(90deg, ${settings.primaryColor}, ${settings.accentColor})`,
+            marginBottom: '24px'
+          }}
+        />
+
+        {/* Contact Info */}
+        <div>
+          <p
+            style={{
+              color: textColor,
+              fontSize: '15px',
+              fontWeight: '400',
+              marginBottom: '6px',
+              letterSpacing: '0.2px'
+            }}
+          >
+            {section.contactEmail || 'www.yourwebsite.com'}
+          </p>
+          <p
+            style={{
+              color: textColor,
+              fontSize: '15px',
+              fontWeight: '400',
+              letterSpacing: '0.2px'
+            }}
+          >
+            {section.contactPhone || '@yourhandle'}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
